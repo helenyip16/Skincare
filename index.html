@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FBFFFF">
+  <title>Masks Calendar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#026b66; --muted:#026b66; --green:#026b66; --line:#c9e5e1; --paper:#fff; --background:#FBFFFF; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--background); color:var(--ink); font-family:'DM Sans',sans-serif; font-size:14px; letter-spacing:0; }
+    button,input,select { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,input:focus-visible,select:focus-visible { outline:3px solid #2b958d; outline-offset:3px; }
+    button:disabled { cursor:default; opacity:.4; }
+    .shell { max-width:1260px; margin:auto; padding:0 48px 36px; }
+    .site-topbar { position:sticky; top:0; z-index:30; background:var(--background); }
+    header { display:flex; align-items:center; justify-content:space-between; padding:28px 0; border-bottom:1px solid var(--line); gap:16px; }
+    .jump-nav { position:relative; display:flex; gap:6px; max-width:100%; overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain; padding:8px 0; border-bottom:1px solid var(--line); background:transparent; }
+    .jump-nav::-webkit-scrollbar { display:none; }
+    .jump-nav a { display:inline-flex; flex:0 0 auto; align-items:center; padding:8px 12px; border-radius:5px; color:var(--muted); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap; }
+    .jump-nav a:hover,.jump-nav a:focus-visible { color:var(--ink); background:#c8e9e5; }
+    #overview,#calendar,#collection,#monthly-summary { scroll-margin-top:142px; }
+    .brand { display:flex; align-items:center; gap:11px; font-family:Manrope,sans-serif; font-weight:800; }
+    .brand-mark { display:block; width:auto; max-width:180px; min-width:42px; height:34px; padding:0 10px; overflow:hidden; border:0; background:var(--green); color:#f0fcfc; border-radius:8px; font:700 11px 'DM Sans',sans-serif; text-overflow:ellipsis; white-space:nowrap; }
+    .brand-copy { display:grid; gap:2px; }
+    .brand-title { font-size:16px; font-weight:800; }
+    .profile-dialog { width:min(380px,calc(100% - 28px)); }
+    .header-tools { display:flex; align-items:center; gap:18px; }
+    .language-select { width:auto; margin:0; padding:8px 30px 8px 10px; font-size:12px; }
+    .visually-hidden { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    .icon { width:19px; height:19px; display:block; }
+    .header-note { color:var(--muted); display:flex; align-items:center; gap:8px; font-size:12px; }
+    section.intro { display:flex; justify-content:space-between; align-items:end; gap:20px; padding:14px 0 12px; }
+    .eyebrow { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0; color:var(--green); margin:0 0 4px; }
+    h1,h2,h3,p { margin-top:0; }
+    .intro h1 { font-family:Manrope,sans-serif; font-size:16px; font-weight:800; margin-bottom:4px; }
+    .subtitle { color:var(--muted); font-size:10px; margin-bottom:0; line-height:1.4; }
+    .today-label { color:var(--muted); font-size:13px; white-space:nowrap; padding-bottom:4px; }
+    .daily-ritual-panel { display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr) auto; align-items:center; gap:12px 18px; padding:18px 0; margin-bottom:28px; }
+    .daily-ritual-heading .section-label { margin-bottom:4px; }
+    .daily-ritual-heading .entry-date { margin:0; font-size:16px; }
+    .daily-ritual-panel .entry-summary { margin:0; font-size:12px; }
+    .daily-ritual-panel .primary { width:auto; margin:0; padding:9px 12px; font-size:12px; }
+    .daily-ritual-panel .primary .icon { width:16px; height:16px; }
+    .daily-ritual-panel .message { grid-column:1/-1; margin:0; }
+    .summary { display:grid; grid-template-columns:minmax(170px,1fr) minmax(170px,1fr) minmax(400px,2.5fr); margin-bottom:30px; padding:22px 0; border-block:1px solid var(--line); }
+    .stat { display:flex; gap:15px; align-items:center; padding:0 24px; border-right:1px solid var(--line); }
+    .stat:first-child { padding-left:0; }
+    .stat:last-child { border:0; }
+    .stat-icon { color:var(--green); background:#c8e9e5; padding:12px; border-radius:50%; }
+    .stat-value { font-family:Manrope,sans-serif; font-weight:800; font-size:23px; }
+    .stat-label { font-size:12px; color:var(--muted); margin-top:3px; }
+    .chart-stat { min-width:0; gap:16px; border-right:0; }
+    .mask-chart { position:relative; display:grid; place-items:center; width:104px; aspect-ratio:1; flex:0 0 104px; border-radius:50%; background:conic-gradient(#c9e5e1 0 100%); }
+    .mask-chart::before { content:''; position:absolute; inset:13px; background:var(--background); border-radius:50%; }
+    .chart-center { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; }
+    .chart-total { font-family:Manrope,sans-serif; font-size:22px; line-height:1.1; font-weight:800; }
+    .chart-total-label { color:var(--muted); font-size:10px; margin-top:4px; }
+    .chart-content { min-width:0; flex:1; }
+    .chart-title { margin:0 0 9px; color:var(--muted); font-size:12px; font-weight:600; }
+    .chart-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 12px; }
+    .chart-legend-item { display:flex; align-items:center; gap:6px; min-width:0; font-size:10px; }
+    .chart-swatch { width:8px; height:8px; flex:0 0 8px; border-radius:50%; }
+    .chart-legend-icon { width:22px; height:22px; flex:0 0 22px; border:0; border-radius:0; background:transparent; }
+    .chart-legend-icon .icon { width:18px; height:18px; stroke-width:2.75; }
+    .chart-name { display:flex; align-items:center; gap:5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+    .chart-name-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mask-inline-icon { display:inline-grid; place-items:center; width:14px; height:14px; flex:0 0 14px; color:var(--mask-ink,var(--ink)); }
+    .mask-inline-icon .icon { width:13px; height:13px; }
+    .chart-name-content { display:flex; align-items:center; gap:5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mask-inline-icon .icon { width:13px; height:13px; }
+    .chart-count { color:var(--muted); white-space:nowrap; }
+    .chart-empty { margin:0; color:var(--muted); font-size:11px; }
+    .weekly-kpis { margin:0 0 30px; padding:0 0 24px; border-bottom:1px solid var(--line); }
+    .weekly-kpi-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; margin-bottom:18px; }
+    .weekly-kpi-heading-tools { display:flex; align-items:center; gap:12px; }
+    .weekly-kpi-heading h2 { font-size:18px; }
+    .weekly-kpi-note { margin:5px 0 0; color:var(--muted); font-size:12px; }
+    .weekly-range { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .weekly-kpi-rows { display:grid; gap:14px; }
+    .weekly-kpi-row { display:grid; grid-template-columns:minmax(190px,260px) minmax(0,1fr) 52px; align-items:center; gap:16px; }
+    .weekly-kpi-name { display:flex; align-items:flex-start; gap:5px; min-width:0; line-height:1.35; font-size:12px; font-weight:600; }
+    .weekly-kpi-type-icons { display:inline-flex; gap:2px; flex:0 0 auto; }
+    .weekly-kpi-type-icons .icon { stroke-width:2.75; }
+    .weekly-kpi-track { height:12px; border-radius:999px; overflow:hidden; background:#e5efed; }
+    .weekly-kpi-fill { display:block; width:0; height:100%; border-radius:inherit; background:var(--bar-color); transition:width .25s ease; }
+    .weekly-kpi-count { text-align:right; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+    .weekly-kpi-editor { display:grid; gap:14px; }
+    .weekly-kpi-edit-rows { display:grid; gap:10px; }
+    .weekly-kpi-edit-row { display:grid; grid-template-columns:minmax(150px,1fr) 50px 36px; max-width:640px; align-items:center; gap:10px; }
+    .weekly-kpi-edit-row select { margin:0; padding:9px 10px; font-size:12px; }
+    .weekly-kpi-editor-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+    .weekly-kpi-editor-actions .today-button { margin:0; }
+    .weekly-summary { margin-top:8px; padding:24px 0 8px; border-top:1px solid var(--line); }
+    .weekly-summary-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:12px; }
+    .weekly-summary-heading h2 { font-size:18px; }
+    .weekly-summary-range { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .weekly-insight-title { margin:0 0 10px; color:var(--muted); font-size:13px; font-weight:700; }
+    .weekly-kpi-summary { padding:4px 0 18px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+    .weekly-kpi-summary-heading { display:flex; align-items:baseline; justify-content:space-between; gap:16px; }
+    .weekly-kpi-conclusion,.weekly-type-conclusion { margin:0 0 12px; color:var(--muted); font-size:12px; line-height:1.5; }
+    .weekly-kpi-status-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:30px; }
+    .weekly-kpi-status-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); }
+    .weekly-kpi-status-name { font-size:12px; line-height:1.4; }
+    .weekly-kpi-status-mark { flex:0 0 auto; font-size:17px; font-weight:700; }
+    .weekly-kpi-status-mark.is-met { color:#27814e; }
+    .weekly-kpi-status-mark.is-missed { color:#b44949; }
+    .weekly-type-chart-content { display:flex; align-items:flex-start; gap:18px; }
+    .weekly-type-chart { width:110px; flex:0 0 110px; }
+    .weekly-type-chart .chart-total { font-size:20px; }
+    .weekly-type-chart .chart-total-label { max-width:66px; text-align:center; }
+    .weekly-type-details { min-width:0; flex:1; }
+    .weekly-type-legend { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 12px; }
+    .monthly-summary { margin-top:8px; padding:24px 0 8px; border-top:1px solid var(--line); }
+    .monthly-summary-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:12px; }
+    .monthly-summary-heading h2 { font-size:18px; }
+    .monthly-summary-range { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .monthly-kpi-result { margin:7px 0 0; color:var(--green); font-size:13px; font-weight:700; }
+    .monthly-kpi-result.is-failed,.monthly-week-note.is-failed { color:#b44949; }
+    .monthly-kpi-result.is-passed,.monthly-week-note.is-passed { color:#27814e; }
+    .monthly-kpi-result.is-in-progress,.monthly-week-note.is-in-progress { color:var(--muted); }
+    .monthly-weeks { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:32px; }
+    .monthly-week { min-width:0; padding:16px 0; border-bottom:1px solid var(--line); }
+    .monthly-week-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:12px; }
+    .monthly-week-title { margin:0; font-size:13px; font-weight:700; }
+    .monthly-week-note { color:var(--muted); font-size:11px; text-align:right; }
+    .monthly-week-content { display:flex; align-items:flex-start; gap:12px; min-width:0; }
+    .monthly-week-chart { width:78px; flex:0 0 78px; }
+    .monthly-week-chart::before { inset:10px; }
+    .monthly-week-chart .chart-total { font-size:17px; }
+    .monthly-week-chart .chart-total-label { font-size:9px; }
+    .monthly-week-legend { display:grid; gap:6px; min-width:0; flex:1; }
+    .monthly-week-legend .chart-legend-item { align-items:flex-start; gap:5px; }
+    .monthly-week-mask-name { min-width:0; flex:1; font-size:10px; line-height:1.3; overflow-wrap:anywhere; }
+    .monthly-week-legend .chart-legend-item { font-size:10px; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:32px; align-items:start; }
+    .calendar { background:var(--paper); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+    .calendar-heading { padding:23px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    h2 { font-family:Manrope,sans-serif; font-weight:800; font-size:19px; margin-bottom:0; }
+    .calendar-controls { display:flex; align-items:center; gap:7px; }
+    .icon-button { display:grid; place-items:center; width:32px; height:32px; background:white; border:1px solid var(--line); border-radius:5px; color:var(--ink); }
+    .icon-button:hover,.today-button:hover { background:#edf8f6; }
+    .today-button { border:1px solid var(--line); background:white; padding:6px 10px; border-radius:5px; font-size:12px; margin-right:5px; color:var(--ink); }
+    #customize-weekly-kpis { border-color:#81D8D0; background:#81D8D0; color:var(--ink); }
+    .weekdays,.days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); }
+    .weekdays { background:#f4fbfa; border-block:1px solid var(--line); }
+    .weekdays span { text-align:center; padding:13px 0; font-size:10px; font-weight:700; text-transform:uppercase; color:var(--muted); letter-spacing:1px; }
+    .day { min-width:0; height:102px; border:0; border-right:1px solid var(--line); border-bottom:1px solid var(--line); background:white; text-align:left; padding:8px 6px; color:var(--ink); position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+    .day:nth-child(7n) { border-right:0; }
+    .day:hover { background:#f1faf8; }
+    .day.outside { color:#026b66; background:#f8fcfb; }
+    .day.selected { box-shadow:inset 0 0 0 2px var(--green); background:#e8f5f2; z-index:1; }
+    .day.has-entry,.day.has-entry:hover { color:var(--ink); }
+    .day.selected.has-entry { box-shadow:inset 0 0 0 2px var(--mask-ink); }
+    .day-number { display:grid; place-items:center; width:25px; height:25px; font-size:12px; }
+    .day.has-entry:not(.is-today) .day-number { background:#ffffffb8; border-radius:50%; }
+    .is-today .day-number { background:var(--green); color:white; border-radius:50%; }
+    .mask-tag { display:flex; align-items:center; gap:3px; background:var(--tag-bg); color:var(--tag-ink); font-size:9px; line-height:1.15; font-weight:600; border-radius:4px; padding:2px 4px; width:100%; overflow:hidden; white-space:nowrap; }
+    .mask-tag .mask-inline-icon { width:12px; height:12px; flex-basis:12px; }
+    .mask-tag .mask-inline-icon .icon { width:11px; height:11px; }
+    .mask-tag-label { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .day-add { color:#026b66; font-size:20px; margin-left:6px; opacity:0; }
+    .day:hover .day-add,.day.selected .day-add { opacity:1; }
+    .calendar-footer { padding:15px 20px; font-size:11px; color:var(--muted); display:flex; justify-content:space-between; gap:12px; }
+    .legend { display:flex; align-items:center; gap:7px; }
+    .dot { height:7px; width:7px; border-radius:50%; background:var(--green); }
+    .section-label { color:var(--muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1.3px; margin:0 0 12px; }
+    .entry-date { font-family:Manrope,sans-serif; font-weight:800; font-size:21px; margin-bottom:20px; }
+    .previous { background:#e7f3f0; border-radius:6px; padding:15px; display:flex; gap:11px; margin-bottom:22px; }
+    .previous .icon { flex-shrink:0; color:var(--green); margin-top:1px; }
+    .previous small { display:block; color:var(--muted); font-size:11px; margin-bottom:5px; }
+    .previous strong { font-size:13px; font-weight:600; }
+    label { display:block; font-size:12px; font-weight:600; margin-bottom:9px; }
+    select,input { width:100%; padding:12px; border:1px solid #dce2d8; border-radius:6px; background:white; color:var(--ink); min-width:0; }
+    select { margin-bottom:17px; }
+    input::placeholder { color:#026b66; }
+    .primary { border:0; background:var(--green); color:white; display:flex; align-items:center; justify-content:center; gap:9px; width:100%; padding:13px; border-radius:6px; font-weight:600; margin-top:20px; }
+    .primary:hover { background:#294c3a; }
+    .remove { border:0; background:none; color:var(--muted); text-decoration:underline; width:100%; margin-top:12px; padding:5px; font-size:12px; }
+    .message { font-size:12px; line-height:1.5; margin:12px 0 0; color:var(--green); }
+    .warning { color:#996320; background:#fff3df; border-radius:5px; padding:10px; }
+    .collection { padding-top:24px; }
+    .collection-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:17px; }
+    .entry-summary { color:var(--muted); font-size:12px; line-height:1.6; margin:18px 0 0; white-space:pre-line; }
+    .entry-dialog { width:min(560px,calc(100% - 28px)); max-height:min(90vh,780px); margin:auto; padding:0; border:1px solid var(--line); border-radius:10px; background:var(--paper); color:var(--ink); box-shadow:0 22px 70px #073d3833; }
+    .entry-dialog::backdrop { background:#073d386b; backdrop-filter:blur(2px); }
+    .dialog-content { padding:26px; }
+    .dialog-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; }
+    .dialog-heading .section-label { margin-bottom:7px; }
+    .dialog-heading h2 { font-size:21px; }
+    .daily-entries { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+    .daily-entry-chip { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:1px solid var(--line); border-radius:5px; padding:7px 10px; background:#f4fbfa; color:var(--ink); font-size:11px; }
+    .daily-entry-chip[aria-pressed="true"] { border-color:var(--green); background:#e7f3f0; }
+    .add-entry-button { display:inline-flex; align-items:center; gap:7px; margin:0 0 16px; }
+    .add-entry-button .icon { width:15px; height:15px; }
+    .dialog-fields { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+    .dialog-field { min-width:0; }
+    .dialog-field.full { grid-column:1/-1; }
+    .dialog-field select,.dialog-field input,.dialog-field textarea { margin-bottom:17px; }
+    .field-hint { color:var(--muted); font-size:11px; margin:-10px 0 17px; }
+    .photo-actions { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:14px; }
+    .photo-action { position:relative; display:inline-flex; align-items:center; gap:8px; padding:10px 12px; border:1px solid var(--line); border-radius:6px; color:var(--ink); background:#f4fbfa; font-size:12px; font-weight:600; cursor:pointer; }
+    .photo-action:hover { background:#e8f5f2; }
+    .photo-action:focus-within { outline:3px solid #2b958d; outline-offset:3px; }
+    .photo-input { position:absolute; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+    .photo-preview-wrap { display:flex; align-items:flex-start; gap:12px; margin-bottom:17px; }
+    .photo-preview { display:block; max-width:min(100%,250px); max-height:190px; object-fit:contain; border:1px solid var(--line); border-radius:6px; background:#f4fbfa; }
+    .photo-remove { width:auto; margin:0; }
+    .dialog-actions { display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:4px; }
+    .dialog-actions .primary { width:auto; margin:0; padding-inline:18px; }
+    .dialog-actions .remove { width:auto; margin:0 auto 0 0; }
+    .dialog-status { min-height:18px; }
+    .collection h3 { font-family:Manrope,sans-serif; font-size:15px; margin:0; }
+    .collection-list { display:grid; grid-template-columns:1fr; column-gap:14px; }
+    .collection-list.edit-mode { grid-template-columns:1fr; }
+    .mask-item { display:flex; align-items:center; gap:11px; padding:11px 0; min-width:0; }
+    .mask-type-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:50%; background:var(--mask-bg); color:var(--mask-ink); flex:0 0 40px; }
+    .mask-type-icon .icon { width:20px; height:20px; }
+    .mask-item-copy { min-width:0; flex:1; }
+    .mask-actions { display:flex; align-items:center; gap:2px; flex:0 0 auto; }
+    .mask-drag-handle { touch-action:none; cursor:grab; user-select:none; }
+    .mask-drag-handle:active { cursor:grabbing; }
+    .mask-item.is-dragging { opacity:.45; }
+    .mask-item.drop-before { box-shadow:inset 0 2px var(--green); }
+    .mask-item.drop-after { box-shadow:inset 0 -2px var(--green); }
+    .mask-actions .icon-button { width:30px; height:30px; border-color:transparent; background:transparent; color:var(--muted); }
+    .mask-actions .icon-button:hover { background:#e5f3f0; color:var(--ink); }
+    .mask-edit-form { display:grid; gap:6px; min-width:0; flex:1; }
+    .mask-edit-form input { padding:7px 8px; font-size:11px; }
+    .mask-edit-actions { display:flex; justify-content:flex-end; gap:4px; }
+    .mask-select-control { display:flex; align-items:center; gap:8px; margin-bottom:17px; }
+    .mask-select-control .mask-type-icon { width:38px; height:38px; flex-basis:38px; }
+    .mask-select-control select { flex:1; min-width:0; margin-bottom:0; }
+    .entry-summary-record { display:flex; align-items:flex-start; gap:7px; margin:4px 0; }
+    .entry-summary-record .mask-inline-icon { margin-top:2px; }
+    .mask-select-control { display:flex; align-items:center; gap:8px; margin-bottom:17px; }
+    .mask-select-control .mask-type-icon { width:38px; height:38px; }
+    .mask-select-control select { flex:1; min-width:0; margin-bottom:0; }
+    .mask-item > div { min-width:0; }
+    .mask-item strong { display:block; font-size:12px; font-weight:600; }
+    .mask-item small { display:block; color:var(--muted); font-size:11px; margin-top:4px; }
+    .mask-item strong { overflow-wrap:anywhere; }
+    .add-form { margin-top:10px; display:flex; gap:8px; }
+    .add-form input { font-size:12px; }
+    .add-form .icon-button { width:40px; height:40px; flex-shrink:0; background:var(--green); color:white; border:0; }
+    .add-form #toggle-collection-edit { background:var(--green); color:white; border:0; }
+    footer { margin-top:30px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; gap:16px; color:var(--muted); font-size:11px; }
+    [hidden] { display:none !important; }
+    @keyframes appear { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+    main { animation:appear .4s ease-out; }
+    @media (prefers-reduced-motion:reduce) { main { animation:none; } }
+    @media (max-width:950px) { .shell { padding-inline:24px; } .workspace { gap:22px; grid-template-columns:minmax(0,1fr) 270px; } .day { height:88px; padding:8px 4px; } }
+    @media (max-width:950px) { .summary { grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(300px,2fr); } .chart-stat { gap:12px; padding-inline:14px; } .mask-chart { width:88px; flex-basis:88px; } .chart-legend { gap:6px 8px; } }
+    @media (max-width:720px) { .daily-ritual-panel { grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; padding:14px 0; margin-bottom:20px; } .daily-ritual-heading,.daily-ritual-panel .entry-summary,.daily-ritual-panel .message { grid-column:1/-1; } .daily-ritual-panel .primary { grid-column:1/-1; justify-self:start; } }
+    @media (max-width:720px) { .collection-list:not(.edit-mode) { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:8px; } }
+    @media (max-width:720px) { .shell { padding-inline:18px; } header { padding-block:20px; } .header-note span { display:none; } .intro { padding-top:27px; } h1 { font-size:27px; } .today-label { display:none; } .summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-block:18px; } .stat { padding:0 10px; gap:0; } .stat-icon { display:none; } .stat-value { font-size:21px; } .stat-label { font-size:10px; } .stat:nth-child(2) { grid-column:2; grid-row:1; } .chart-stat { grid-column:1/-1; grid-row:2; display:flex; gap:14px; padding:16px 0 0; border-top:1px solid var(--line); border-right:0; } .mask-chart { width:88px; flex-basis:88px; } .chart-legend { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 10px; } .chart-legend-item { font-size:10px; } .weekly-kpi-heading { align-items:flex-start; flex-direction:column; gap:7px; } .weekly-kpi-rows { gap:13px; } .weekly-kpi-row { grid-template-columns:minmax(0,1fr) auto; gap:6px 12px; } .weekly-kpi-track { grid-column:1/-1; } .workspace { grid-template-columns:1fr; } .calendar-heading { padding:18px 14px; } h2 { font-size:17px; } .day { height:82px; } .mask-tag { font-size:9px; padding:4px; } .calendar-footer { padding:13px 12px; font-size:10px; } .collection-list { display:grid; grid-template-columns:1fr; column-gap:20px; } .mask-item { gap:8px; } .mask-type-icon { width:34px; height:34px; flex-basis:34px; } .mask-actions .icon-button { width:28px; height:28px; } .monthly-summary-heading { align-items:flex-start; flex-direction:column; gap:5px; } .monthly-weeks { grid-template-columns:1fr; } .monthly-week-content { gap:14px; } .monthly-week-chart { width:86px; flex-basis:86px; } footer { flex-direction:column; gap:8px; } .dialog-content { padding:21px 18px; } .dialog-fields { grid-template-columns:1fr; } .dialog-field.full { grid-column:auto; } .dialog-actions { flex-wrap:wrap; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="site-topbar">
+    <header>
+      <div class="brand"><button class="brand-mark" id="profile-name-button" type="button" aria-label="Edit your name" title="Edit your name">Your Name</button><div class="brand-copy"><span class="brand-title">Masks Calendar</span></div></div>
+      <div class="header-tools">
+        <div class="header-note"><span data-icon="shield-check"></span><span data-i18n="headerNote">Your personal care journal</span></div>
+        <label class="visually-hidden" for="language-select">Language / 語言</label>
+        <select class="language-select" id="language-select" aria-label="Language / 語言"><option value="en">English</option><option value="zh-Hant">繁體中文</option></select>
+      </div>
+    </header>
+    <nav class="jump-nav" aria-label="Section navigation" data-i18n-aria="sectionNavigation">
+      <a href="#overview" data-i18n="overviewNav">Overview</a>
+      <a href="#calendar" data-i18n="calendarNav">Calendar</a>
+      <a href="#collection" data-i18n="collectionHeading">My mask</a>
+      <a href="#monthly-summary" data-i18n="recapNav">Recap</a>
+    </nav>
+    </div>
+    <main>
+      <section class="summary" id="overview" aria-label="Monthly overview" data-i18n-aria="monthlyOverview">
+        <div class="stat"><span class="stat-icon"><span data-icon="calendar-check"></span></span><div><div class="stat-value" id="month-count">0 <span data-i18n="days" style="font-size:12px;font-weight:500">days</span></div><div class="stat-label" data-i18n="maskedMonth">Masked this month</div></div></div>
+        <div class="stat"><span class="stat-icon"><span data-icon="flame"></span></span><div><div class="stat-value" id="streak-count">0 <span data-i18n="days" style="font-size:12px;font-weight:500">days</span></div><div class="stat-label" data-i18n="currentStreak">Current streak</div></div></div>
+        <div class="stat chart-stat">
+          <div class="mask-chart" id="mask-chart" role="img" aria-label="Mask types used this month" data-i18n-aria="chartAria"><div class="chart-center"><span class="chart-total" id="chart-total">0</span><span class="chart-total-label" data-i18n="uses">uses</span></div></div>
+          <div class="chart-content"><h2 class="chart-title" data-i18n="chartTitle">Mask types used</h2><div class="chart-legend" id="chart-legend"></div><p class="chart-empty" id="chart-empty" data-i18n="noMasksThisMonth" hidden>No masks recorded this month</p></div>
+        </div>
+      </section>
+      <section class="weekly-kpis" aria-label="Weekly mask KPIs" data-i18n-aria="weeklyKpiTitle">
+        <div class="weekly-kpi-heading"><div><h2 data-i18n="weeklyKpiTitle">Weekly mask KPIs</h2><p class="weekly-kpi-note" data-i18n="weeklyKpiNote">Target: once per week for each type</p></div><div class="weekly-kpi-heading-tools"><span class="weekly-range" id="weekly-range"></span><button class="today-button" id="customize-weekly-kpis" type="button"><strong data-i18n="customizeWeeklyKpis">Customize</strong></button></div></div>
+        <p class="message" id="weekly-kpi-status" role="status" aria-live="polite" hidden></p>
+        <div class="weekly-kpi-rows" id="weekly-kpi-rows"></div>
+        <div class="weekly-kpi-editor" id="weekly-kpi-editor" hidden><div class="weekly-kpi-edit-rows" id="weekly-kpi-edit-rows"></div><div class="weekly-kpi-editor-actions"><button class="today-button" id="add-weekly-kpi" type="button" data-i18n="addWeeklyKpi">Add goal</button><button class="today-button" id="cancel-weekly-kpis" type="button" data-i18n="cancelWeeklyKpis">Cancel</button><button class="primary" id="save-weekly-kpis" type="button" data-i18n="saveWeeklyKpis">Save goals</button></div><p class="message" id="weekly-kpi-editor-status" role="status" aria-live="polite"></p></div>
+      </section>
+      <section class="daily-ritual-panel" id="calendar" aria-labelledby="entry-date">
+        <div class="daily-ritual-heading"><p class="section-label" id="entry-label">Daily entry</p><h2 class="entry-date" id="entry-date"></h2></div>
+        <p class="entry-summary" id="entry-summary"></p>
+        <button class="primary" id="open-entry" type="button"><span data-icon="edit-3"></span><span id="open-entry-label">Record mask details</span></button>
+        <p class="message" id="status" role="status" aria-live="polite"></p>
+      </section>
+      <div class="workspace">
+        <section class="calendar" aria-label="Mask calendar" data-i18n-aria="calendarLabel">
+          <div class="calendar-heading"><h2 id="month-heading"></h2><div class="calendar-controls"><button class="today-button" id="today-button" data-i18n="today">Today</button><button class="icon-button" id="previous-month" aria-label="Previous month" title="Previous month" data-i18n-aria="previousMonth" data-i18n-title="previousMonth"><span data-icon="chevron-left"></span></button><button class="icon-button" id="next-month" aria-label="Next month" title="Next month" data-i18n-aria="nextMonth" data-i18n-title="nextMonth"><span data-icon="chevron-right"></span></button></div></div>
+          <div class="weekdays"><span data-i18n="mon">Mon</span><span data-i18n="tue">Tue</span><span data-i18n="wed">Wed</span><span data-i18n="thu">Thu</span><span data-i18n="fri">Fri</span><span data-i18n="sat">Sat</span><span data-i18n="sun">Sun</span></div>
+          <div class="days" id="calendar-days"></div>
+          <div class="calendar-footer"><span class="legend"><span class="dot"></span><span data-i18n="today">Today</span></span><span id="month-total">0 rituals this month</span></div>
+        </section>
+        <aside>
+          <section class="collection" id="collection" aria-labelledby="collection-heading">
+            <div class="collection-heading"><h3 id="collection-heading" data-i18n="collectionHeading">My mask collection</h3><span style="color:var(--muted);font-size:11px" id="collection-count"></span></div>
+            <div class="collection-list" id="collection-list"></div>
+            <form class="add-form" id="add-mask-form"><input id="new-mask" required maxlength="40" aria-label="New mask name" data-i18n-aria="newMaskName" placeholder="Add a mask category to your collection" data-i18n-placeholder="addMaskPlaceholder"><button type="submit" class="icon-button" aria-label="Add mask" title="Add mask" data-i18n-aria="addMask" data-i18n-title="addMask"><span data-icon="plus"></span></button><button type="button" class="icon-button" id="toggle-collection-edit" aria-pressed="false" aria-label="Edit categories" title="Edit categories"><span data-icon="pencil"></span></button></form>
+          </section>
+        </aside>
+      </div>
+      <section class="monthly-summary" id="monthly-summary" aria-label="Monthly summary" data-i18n-aria="monthlySummaryTitle">
+        <div class="monthly-summary-heading"><div><h2 data-i18n="monthlySummaryTitle">Monthly summary</h2><p class="monthly-kpi-result" id="monthly-kpi-result"></p></div><span class="monthly-summary-range" id="monthly-summary-range"></span></div>
+        <div class="monthly-weeks" id="monthly-weeks"></div>
+      </section>
+    </main>
+    <footer><span data-i18n="footerLine">A moment for your skin. A moment for you.</span><span id="storage-note">Saved on this browser only</span></footer>
+  </div>
+  <dialog class="entry-dialog profile-dialog" id="profile-name-dialog" aria-labelledby="profile-name-title">
+    <form class="dialog-content" id="profile-name-form">
+      <div class="dialog-heading"><div><p class="section-label" data-i18n="profileDialogTitle">Your profile</p><h2 id="profile-name-title" data-i18n="profileNameLabel">Your name</h2></div><button class="icon-button" id="close-profile-name" type="button" aria-label="Close" data-i18n-aria="closeEntry"><span data-icon="x"></span></button></div>
+      <label for="profile-name-input" data-i18n="profileNameLabel">Your name</label>
+      <input id="profile-name-input" type="text" maxlength="40" required placeholder="Your Name">
+      <div class="dialog-actions"><button class="today-button" id="cancel-profile-name" type="button" data-i18n="cancel">Cancel</button><button class="primary" type="submit" data-i18n="saveProfileName">Save name</button></div>
+    </form>
+  </dialog>
+  <dialog class="entry-dialog" id="entry-dialog" aria-labelledby="dialog-title">
+    <form class="dialog-content" id="entry-form">
+      <div class="dialog-heading">
+        <div><p class="section-label" data-i18n="dialogEyebrow">Mask journal entry</p><h2 id="dialog-title"></h2></div>
+        <button class="icon-button" id="close-entry" type="button" aria-label="Close entry" title="Close entry" data-i18n-aria="closeEntry" data-i18n-title="closeEntry"><span data-icon="x"></span></button>
+      </div>
+      <div class="daily-entries" id="daily-entries" role="group" aria-label="Entries for this day" data-i18n-aria="dailyEntries"></div>
+      <button class="today-button add-entry-button" id="add-entry" type="button"><span data-icon="plus"></span><span id="add-entry-label">Add entry</span></button>
+      <div class="dialog-fields">
+        <div class="dialog-field full"><label for="mask-select" data-i18n="maskTypeLabel">Which type of mask did you use?</label><div class="mask-select-control"><span class="mask-type-icon" id="selected-mask-icon" aria-hidden="true"></span><select id="mask-select" aria-describedby="mask-type-hint" required><option value="" data-i18n="selectMaskType">Select a mask type</option></select></div><p class="field-hint" id="mask-type-hint" data-i18n="maskTypeHint">Choose from My mask collection.</p></div>
+        <div class="dialog-field full"><label for="mask-name"><span data-i18n="maskNameLabel">Which mask did you use?</span> <span style="color:var(--muted);font-weight:400" data-i18n="optional">(optional)</span></label><input id="mask-name" type="text" maxlength="80" placeholder="Brand or product name" data-i18n-placeholder="brandPlaceholder"></div>
+        <div class="dialog-field full"><label><span data-i18n="photoLabel">Photo</span> <span style="color:var(--muted);font-weight:400" data-i18n="optional">(optional)</span></label><div class="photo-actions"><label class="photo-action"><span data-icon="camera"></span><span data-i18n="takePhoto">Take photo</span><input class="photo-input" id="photo-camera" type="file" accept="image/*" capture="environment" aria-label="Take a photo of the mask" data-i18n-aria="takePhotoAria"></label><label class="photo-action"><span data-icon="image-plus"></span><span data-i18n="uploadPhoto">Upload photo</span><input class="photo-input" id="photo-upload" type="file" accept="image/*" aria-label="Upload a photo of the mask" data-i18n-aria="uploadPhotoAria"></label></div><div class="photo-preview-wrap" id="photo-preview-wrap" hidden><img class="photo-preview" id="photo-preview" alt="Mask photo preview" data-i18n-alt="photoPreview"><button class="remove photo-remove" id="remove-photo" type="button" data-i18n="removePhoto">Remove photo</button></div></div>
+        <div class="dialog-field"><label for="skin-focus"><span data-i18n="skinFocusLabel">Skin focus</span> <span style="color:var(--muted);font-weight:400" data-i18n="optional">(optional)</span></label><select id="skin-focus"><option value="" data-i18n="chooseFocus">Choose a focus</option><option value="Hydration" data-i18n="focusHydration">Hydration</option><option value="Calming" data-i18n="focusCalming">Calming</option><option value="Brightening" data-i18n="focusBrightening">Brightening</option><option value="Firming" data-i18n="focusFirming">Firming</option><option value="Clarifying" data-i18n="focusClarifying">Clarifying</option><option value="Other" data-i18n="other">Other</option></select></div>
+        <div class="dialog-field"><label for="entry-duration"><span data-i18n="durationLabel">Duration in minutes</span> <span style="color:var(--muted);font-weight:400" data-i18n="optional">(optional)</span></label><input id="entry-duration" type="number" min="1" max="120" step="1" placeholder="e.g. 15" data-i18n-placeholder="durationPlaceholder"></div>
+      </div>
+      <div class="dialog-actions">
+        <button class="remove" id="remove-entry" type="button" hidden data-i18n="removeEntry">Remove entry</button>
+        <button class="today-button" id="cancel-entry" type="button" data-i18n="cancel">Cancel</button>
+        <button class="primary" id="save-entry" type="submit"><span data-icon="check"></span><span id="save-label">Save entry</span></button>
+      </div>
+      <p class="message dialog-status" id="dialog-status" role="status" aria-live="polite"></p>
+    </form>
+  </dialog>
+  <script>
+    const storageKey = 'masks-calendar-v1';
+    const photoDatabaseName = 'masks-calendar-media-v1';
+    const palettes = [ { bg:'#e7eee0', ink:'#547040' }, { bg:'#e1edf2', ink:'#48768a' }, { bg:'#f4e4e6', ink:'#a46271' }, { bg:'#eee7f3', ink:'#856997' }, { bg:'#f8eddb', ink:'#a7803b' } ];
+    const defaultMasks = [
+      { id:'type-hydrating-moisture-locking', name:'Hydrating & Moisture-Locking', detail:'Hydration', icon:'droplets', palette:{ bg:'#82CAFF', ink:'#006D77', color:'#82CAFF' } },
+      { id:'type-soothing-anti-redness', name:'Soothing & Anti-Redness', detail:'Soothing', icon:'leaf', palette:{ bg:'#CAFFBF', ink:'#2D6A4F', color:'#CAFFBF' } },
+      { id:'type-brightening-anti-pigmentation', name:'Brightening & Anti-Pigmentation', detail:'Brightening', icon:'sun', palette:{ bg:'#FDFFB6', ink:'#8B7500', color:'#FDFFB6' } },
+      { id:'type-deep-cleansing-purifying', name:'Deep Cleansing & Purifying', detail:'Purifying', icon:'filter', palette:{ bg:'#DFDFDF', ink:'#4B5563', color:'#DFDFDF' } },
+      { id:'type-anti-aging-sculpting', name:'Anti-Aging & Sculpting', detail:'Firming', icon:'scan-face', palette:{ bg:'#FFADAD', ink:'#8B0000', color:'#FFADAD' } },
+      { id:'type-chemical-exfoliating-resurfacing', name:'Chemical Exfoliating & Resurfacing', detail:'Exfoliating', icon:'flask-conical', palette:{ bg:'#FFD6A5', ink:'#8B4513', color:'#FFD6A5' } },
+      { id:'type-pdrn-dna-cellular-repair', name:'PDRN & DNA Cellular Repair', detail:'Cellular repair', icon:'dna', palette:{ bg:'#FFE5E7', ink:'#A23B5A', color:'#FFE5E7' } },
+      { id:'type-enzyme-proteolytic', name:'Enzyme Proteolytic', detail:'Enzyme treatment', icon:'microscope', palette:{ bg:'#FFCBBC', ink:'#A0522D', color:'#FFCBBC' } },
+      { id:'type-fermented-microbiome', name:'Fermented Microbiome', detail:'Fermented care', icon:'waves', palette:{ bg:'#F9EEE2', ink:'#6B4F3A', color:'#F9EEE2' } },
+      { id:'type-exosome-growth-factor', name:'Exosome & Growth Factor', detail:'Skin renewal', icon:'sparkles', palette:{ bg:'#C8CEEE', ink:'#483D8B', color:'#C8CEEE' } }
+    ];
+    const randomMaskIcons = ['flower-2','heart','sparkles','droplets','shield-plus','sprout','flask-conical','sun','waves','atom','feather','badge-check'];
+    const randomMaskPalettes = [
+      { bg:'#e4f2f0', ink:'#26756f', color:'#8bd6ce' }, { bg:'#e8e9fa', ink:'#4f5796', color:'#a2a9eb' },
+      { bg:'#fae5ef', ink:'#97506f', color:'#efa5c6' }, { bg:'#faedda', ink:'#8d612e', color:'#e7bd7d' },
+      { bg:'#e5edf8', ink:'#43638d', color:'#94b9e5' }, { bg:'#f1e8df', ink:'#795d46', color:'#d8bda1' },
+      { bg:'#e8f0de', ink:'#58743c', color:'#afcf8a' }, { bg:'#f5e7e7', ink:'#945858', color:'#df9c9c' }
+    ];
+    const randomChoice = items => items[Math.floor(Math.random()*items.length)];
+    const retiredMaskAliases = new Map([
+      ['aloe','type-soothing-anti-redness'],
+      ['hyaluronic','type-hydrating-moisture-locking'],
+      ['rose','type-brightening-anti-pigmentation'],
+      ['collagen','type-anti-aging-sculpting']
+    ]);
+    const retiredMaskNames = new Map([
+      ['aloe soothing','type-soothing-anti-redness'],
+      ['hyaluronic hydration','type-hydrating-moisture-locking'],
+      ['rose glow','type-brightening-anti-pigmentation'],
+      ['collagen firming','type-anti-aging-sculpting']
+    ]);
+    let state = { masks:defaultMasks, archivedMasks:[], entries:{}, weeklyGoals:null };
+    let storageAvailable = true;
+    let profileName = '';
+    try { profileName = localStorage.getItem('masks-calendar-user-name') || ''; } catch {}
+    let editingMaskId = null;
+    let collectionEditMode = false;
+    let editingWeeklyGoals = false;
+    let weeklyGoalDraft = [];
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey));
+      if (saved && Array.isArray(saved.masks) && saved.masks.every(mask => typeof mask.id === 'string' && typeof mask.name === 'string') && saved.entries && typeof saved.entries === 'object' && !Array.isArray(saved.entries)) {
+        const archivedMasks = Array.isArray(saved.archivedMasks) ? saved.archivedMasks.filter(mask => mask && typeof mask.id === 'string' && typeof mask.name === 'string') : [];
+        const archivedIds = new Set(archivedMasks.map(mask => mask.id));
+        const savedMasksById = new Map(saved.masks.map(mask => [mask.id,mask]));
+        const activeDefaults = defaultMasks.filter(mask => !archivedIds.has(mask.id)).map(mask => ({ ...mask,...(savedMasksById.get(mask.id) || {}) }));
+        const customMasks = saved.masks.filter(savedMask => !retiredMaskAliases.has(savedMask.id) && !retiredMaskNames.has(savedMask.name.toLowerCase()) && !defaultMasks.some(mask => savedMask.id === mask.id || savedMask.name.toLowerCase() === mask.name.toLowerCase()));
+        const availableMasks = [...activeDefaults,...customMasks];
+        const availableById = new Map(availableMasks.map(mask => [mask.id,mask]));
+        const orderedMasks = saved.masks.map(mask => availableById.get(mask.id)).filter(Boolean);
+        const orderedIds = new Set(orderedMasks.map(mask => mask.id));
+        orderedMasks.push(...availableMasks.filter(mask => !orderedIds.has(mask.id)));
+        const entries = Object.fromEntries(Object.entries(saved.entries).filter(([key,value]) => /^\d{4}-\d{2}-\d{2}$/.test(key) && (Array.isArray(value) || value && typeof value.maskId === 'string')).map(([key,value]) => {
+          const dailyEntries = Array.isArray(value) ? value : [value];
+          const migratedEntries = dailyEntries.filter(entry => entry && typeof entry.maskId === 'string').map(entry => {
+            const oldMask = saved.masks.find(mask => mask.id === entry.maskId);
+            const replacement = retiredMaskAliases.get(entry.maskId) || retiredMaskNames.get(oldMask?.name.toLowerCase());
+            return replacement ? { ...entry, maskId:replacement } : entry;
+          });
+          return [key,migratedEntries];
+        }).filter(([,dailyEntries]) => dailyEntries.length));
+        const savedWeeklyGoals = Array.isArray(saved.weeklyGoals) ? saved.weeklyGoals.filter(goal => goal && Array.isArray(goal.maskIds) && goal.maskIds.length && goal.maskIds.every(id => typeof id === 'string') && Number.isInteger(goal.frequency) && goal.frequency >= 1 && goal.frequency <= 7).map(goal => ({maskIds:[...goal.maskIds],label:typeof goal.label === 'string' ? goal.label : null,frequency:goal.frequency})) : null;
+        state = { masks:orderedMasks, archivedMasks, entries, weeklyGoals:savedWeeklyGoals?.length ? savedWeeklyGoals : null };
+      }
+    } catch { storageAvailable = false; }
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    let selected = new Date(today);
+    let displayedMonth = new Date(today.getFullYear(),today.getMonth(),1);
+    let selectedEntryIndex = null;
+    let photoDatabasePromise;
+    let pendingPhoto = null;
+    let removePhotoRequested = false;
+    let photoPreviewUrl = '';
+    let photoLoadToken = 0;
+    const element = id => document.getElementById(id);
+    const translations = {
+      en: {
+        appTitle:'Masks Calendar', headerNote:'Your personal care journal', eyebrow:'A little care, every day', headline:'Your daily mask ritual', subtitle:'Make time for yourself. Keep your routine fresh.', monthlyOverview:'Monthly overview', days:'days', maskedMonth:'Masked this month', masksRotation:'Masks in rotation', currentStreak:'Current streak', calendarLabel:'Mask calendar', today:'Today', previousMonth:'Previous month', nextMonth:'Next month', mon:'Mon', tue:'Tue', wed:'Wed', thu:'Thu', fri:'Fri', sat:'Sat', sun:'Sun', previousDayMask:"Previous day's mask", noMaskRecorded:'No mask recorded', noEntry:'No mask recorded yet. Select this date to add the mask and routine details.', recordDetails:'Record mask details', editDetails:'Edit mask details', collectionHeading:'My mask collection', maskCount:'{count} masks', addMaskPlaceholder:'Add a mask category to your collection', newMaskName:'New mask category name', addMask:'Add mask category', footerLine:'A moment for your skin. A moment for you.', savedLocal:'Saved on this browser only', storageUnavailable:'Storage unavailable: entries last only for this session', dialogEyebrow:'Mask journal entry', closeEntry:'Close entry', maskTypeLabel:'Which type of mask did you use?', selectMaskType:'Select a mask type', maskTypeHint:'Choose from My mask collection.', maskNameLabel:'Which mask did you use?', optional:'(optional)', brandPlaceholder:'Brand or product name', photoLabel:'Photo', takePhoto:'Take photo', uploadPhoto:'Upload photo', takePhotoAria:'Take a photo of the mask', uploadPhotoAria:'Upload a photo of the mask', photoPreview:'Mask photo preview', removePhoto:'Remove photo', skinFocusLabel:'Skin focus', chooseFocus:'Choose a focus', focusHydration:'Hydration', focusCalming:'Calming', focusBrightening:'Brightening', focusFirming:'Firming', focusClarifying:'Clarifying', other:'Other', durationLabel:'Duration in minutes', durationPlaceholder:'e.g. 15', skinResponseLabel:'How did your skin feel?', chooseResponse:'Choose a response', responseHydrated:'Hydrated', responseCalm:'Calm', responseSoft:'Soft', responseNoChange:'No noticeable change', responseIrritation:'Redness or irritation', removeEntry:'Remove entry', cancel:'Cancel', saveEntry:'Save entry', saveChanges:'Save changes', todayRitual:"Today's ritual", dailyEntry:'Daily entry', unknownMask:'Unknown mask', repeatPrevious:'You used this mask the previous day. Choose a different one to keep your rotation fresh.', repeatNext:'This mask is also recorded on the following day. Choose a different one to avoid a repeat.', photoLoadError:'The saved photo could not be loaded.', photoSaveError:'The photo could not be saved. Try a smaller image or another photo.', photoRemoveError:'The saved photo could not be removed. Please try again.', invalidPhoto:'Choose an image file for the mask photo.', enterMaskName:'Enter a mask category name.', duplicateMask:'This mask category is already in your collection.', ritualSaved:'Your daily ritual is saved.', sessionSaved:'Recorded for this session. Browser storage is unavailable.', entryRemoved:'Entry removed.'
+      },
+      'zh-Hant': {
+        appTitle:'面膜日曆', headerNote:'個人護膚日誌', eyebrow:'每天一點呵護', headline:'每日面膜護理時光', subtitle:'留一點時間照顧自己，讓護膚輪替保持新鮮。', monthlyOverview:'每月概覽', days:'日', maskedMonth:'本月敷面膜日數', masksRotation:'輪替中的面膜類別', currentStreak:'目前連續記錄', calendarLabel:'面膜日曆', today:'今天', previousMonth:'上個月', nextMonth:'下個月', mon:'一', tue:'二', wed:'三', thu:'四', fri:'五', sat:'六', sun:'日', previousDayMask:'前一天使用的面膜', noMaskRecorded:'尚未記錄面膜', noEntry:'尚未記錄面膜。選擇日期以新增面膜與護膚資料。', recordDetails:'記錄面膜資料', editDetails:'編輯面膜資料', collectionHeading:'我的面膜收藏', maskCount:'{count} 種', addMaskPlaceholder:'新增面膜類別至收藏', newMaskName:'新面膜類別名稱', addMask:'新增面膜類別', footerLine:'給肌膚一點時間，也給自己一點時間。', savedLocal:'僅儲存於此瀏覽器', storageUnavailable:'無法使用瀏覽器儲存，資料只會保留於本次工作階段', dialogEyebrow:'面膜使用記錄', closeEntry:'關閉記錄', maskTypeLabel:'使用了哪一類面膜？', selectMaskType:'選擇面膜類別', maskTypeHint:'請從「我的面膜收藏」中選擇。', maskNameLabel:'使用的面膜名稱', optional:'（選填）', brandPlaceholder:'品牌或產品名稱', photoLabel:'照片', takePhoto:'拍攝照片', uploadPhoto:'上傳照片', takePhotoAria:'拍攝面膜照片', uploadPhotoAria:'上傳面膜照片', photoPreview:'面膜照片預覽', removePhoto:'移除照片', skinFocusLabel:'護膚重點', chooseFocus:'選擇護膚重點', focusHydration:'保濕', focusCalming:'舒緩', focusBrightening:'提亮', focusFirming:'緊緻', focusClarifying:'淨化', other:'其他', durationLabel:'敷用時間（分鐘）', durationPlaceholder:'例如 15', skinResponseLabel:'使用後肌膚感受', chooseResponse:'選擇肌膚感受', responseHydrated:'水潤', responseCalm:'舒緩', responseSoft:'柔嫩', responseNoChange:'沒有明顯變化', responseIrritation:'泛紅或刺激', removeEntry:'刪除記錄', cancel:'取消', saveEntry:'儲存記錄', saveChanges:'儲存變更', todayRitual:'今日面膜', dailyEntry:'每日記錄', unknownMask:'未知面膜類別', repeatPrevious:'前一天已使用此面膜類別，請改選其他類別，保持輪替。', repeatNext:'後一天亦已記錄此面膜類別，請改選其他類別，避免連續重複。', photoLoadError:'無法載入已儲存的照片。', photoSaveError:'無法儲存照片，請試用較小的圖片或其他照片。', photoRemoveError:'無法移除已儲存的照片，請再試一次。', invalidPhoto:'請選擇面膜照片檔案。', enterMaskName:'請輸入面膜類別名稱。', duplicateMask:'此面膜類別已在收藏中。', ritualSaved:'面膜記錄已儲存。', sessionSaved:'已記錄於本次工作階段。瀏覽器儲存功能目前無法使用。', entryRemoved:'已刪除記錄。'
+      }
+    };
+    Object.assign(translations.en,{ chartTitle:'Mask types used this month', chartAria:'Mask usage by type this month', uses:'uses', usesCount:'{count} uses', noMasksThisMonth:'No masks recorded this month', dailyEntries:'Entries for this day', addEntry:'Add entry', addAnotherEntry:'Add another entry', entryNumber:'Entry {number}', entriesOnDate:'{count} entries', entrySaved:'Entry saved.', weeklyKpiTitle:'Weekly masking KPIs', weeklyKpiNote:'Weekly target: 1 use per mask type', weeklyCount:'{count} / 1', weeklyKpiAria:'{name}: {count} of 1 this week', weeklyHydrating:'Hydrating & Moisture-Locking', weeklyDeepOrChemical:'Deep Cleansing & Purifying OR Chemical Exfoliating & Resurfacing', weeklyPdrn:'PDRN & DNA Cellular Repair', weeklySoothing:'Soothing & Anti-Redness' });
+    Object.assign(translations['zh-Hant'],{ chartTitle:'本月面膜類別使用情況', chartAria:'本月各面膜類別使用次數', uses:'次', usesCount:'{count} 次', noMasksThisMonth:'本月尚未記錄面膜', dailyEntries:'當日記錄', addEntry:'新增記錄', addAnotherEntry:'再新增一筆', entryNumber:'第 {number} 筆', entriesOnDate:'共 {count} 筆記錄', entrySaved:'記錄已儲存。', weeklyKpiTitle:'每週面膜 KPI', weeklyKpiNote:'每週目標：每類使用一次', weeklyCount:'{count} / 1 次', weeklyKpiAria:'{name}：本週 {count} / 1 次', weeklyHydrating:'保濕鎖水', weeklyDeepOrChemical:'深層清潔與淨化 或 化學去角質與煥膚', weeklyPdrn:'PDRN 與 DNA 細胞修復', weeklySoothing:'舒緩退紅' });
+    Object.assign(translations.en,{ sectionNavigation:'Section navigation', overviewNav:'Overview', calendarNav:'Calendar', recapNav:'Recap', calendarSubtitle:'Review your mask use by day.' });
+    Object.assign(translations['zh-Hant'],{ sectionNavigation:'區段導覽', overviewNav:'總覽', calendarNav:'日曆', recapNav:'回顧', calendarSubtitle:'按日期查看你的面膜使用記錄。' });
+    Object.assign(translations.en,{ editDetails:'Record daily mask details' });
+    Object.assign(translations['zh-Hant'],{ editDetails:'記錄每日面膜資料' });
+    Object.assign(translations.en,{ weeklyKpiNote:'Set your own weekly goal for each mask type', weeklyCount:'{count} / {frequency}', weeklyKpiAria:'{name}: {count} of {frequency} this week', customizeWeeklyKpis:'Customize', saveWeeklyKpis:'Save goals', cancelWeeklyKpis:'Cancel', addWeeklyKpi:'Add goal', removeWeeklyKpi:'Remove goal', weeklyGoalType:'Mask type', weeklyGoalFrequency:'Uses per week', chooseWeeklyMask:'Select a mask type', weeklyGoalSaved:'Weekly goals saved.', weeklyGoalError:'Choose a mask type for every goal.' });
+    Object.assign(translations['zh-Hant'],{ weeklyKpiNote:'為每類面膜設定每週目標', weeklyCount:'{count} / {frequency}', weeklyKpiAria:'{name}：本週 {count} / {frequency}', customizeWeeklyKpis:'自訂目標', saveWeeklyKpis:'儲存目標', cancelWeeklyKpis:'取消', addWeeklyKpi:'新增目標', removeWeeklyKpi:'移除目標', weeklyGoalType:'面膜類別', weeklyGoalFrequency:'每週使用次數', chooseWeeklyMask:'選擇面膜類別', weeklyGoalSaved:'每週目標已儲存。', weeklyGoalError:'請為每項目標選擇面膜類別。' });
+    Object.assign(translations.en,{ editCategory:'Edit category', deleteCategory:'Delete category', saveCategory:'Save category', cancelCategoryEdit:'Cancel editing', categoryNameLabel:'Mask category name', categoryDetailLabel:'Short description', duplicateCategoryName:'A category with that name already exists.', deleteCategoryConfirm:'Remove {name} from My mask collection? Existing calendar records will be kept.', categoryDeleted:'Mask category removed from collection.', categoryUpdated:'Mask category updated.' });
+    Object.assign(translations['zh-Hant'],{ editCategory:'編輯類別', deleteCategory:'刪除類別', saveCategory:'儲存類別', cancelCategoryEdit:'取消編輯', categoryNameLabel:'面膜類別名稱', categoryDetailLabel:'簡短描述', duplicateCategoryName:'已存在相同名稱的面膜類別。', deleteCategoryConfirm:'要從「我的面膜收藏」移除「{name}」嗎？日曆中的舊記錄會保留。', categoryDeleted:'已從收藏移除面膜類別。', categoryUpdated:'面膜類別已更新。' });
+    Object.assign(translations.en,{ moveMaskUp:'Move up', moveMaskDown:'Move down', dragMask:'Drag to reorder category', maskOrderUpdated:'Mask category order updated.' });
+    Object.assign(translations['zh-Hant'],{ moveMaskUp:'上移類別', moveMaskDown:'下移類別', dragMask:'拖曳以重新排列類別', maskOrderUpdated:'面膜類別順序已更新。' });
+    Object.assign(translations.en,{ editCollection:'Edit collection', finishCollectionEdit:'Done editing', collectionEditMode:'Collection edit mode' });
+    Object.assign(translations['zh-Hant'],{ editCollection:'編輯收藏', finishCollectionEdit:'完成編輯', collectionEditMode:'收藏編輯模式' });
+    Object.assign(translations.en,{ yourName:'Your Name', editYourName:'Edit your name', profileDialogTitle:'Your profile', profileNameLabel:'Your name', saveProfileName:'Save name' });
+    Object.assign(translations['zh-Hant'],{ yourName:'你的名字', editYourName:'編輯姓名', profileDialogTitle:'個人資料', profileNameLabel:'你的名字', saveProfileName:'儲存姓名' });
+    Object.assign(translations.en,{ monthlySummaryTitle:'Monthly summary', monthlyKpiPassed:'Monthly KPI: Passed', monthlyKpiFailed:'Monthly KPI: Failed', monthlyKpiProgress:'KPI in progress · {passed} of {completed} completed weeks passed; {pending} weeks in progress or upcoming', monthlyKpiProgressStart:'KPI in progress · {pending} weeks remaining', monthlyWeekPass:'Passed · {count} / {total} targets', monthlyWeekFail:'Not passed · {count} / {total} targets', monthlyWeekProgress:'In progress · {count} / {total} targets so far', monthlyWeekUpcoming:'Upcoming · {total} targets', weeklyTypesTitle:'Mask types used this week', weeklyNoTypes:'No mask types recorded this week yet.' });
+    Object.assign(translations['zh-Hant'],{ monthlySummaryTitle:'每月摘要', monthlyKpiPassed:'每月 KPI：通過', monthlyKpiFailed:'每月 KPI：未通過', monthlyKpiProgress:'KPI 進行中 · 已完成 {completed} 週，其中 {passed} 週通過；另有 {pending} 週進行中或尚未開始', monthlyKpiProgressStart:'KPI 進行中 · 尚有 {pending} 週', monthlyWeekPass:'已通過 · {count} / {total} 項目標', monthlyWeekFail:'未通過 · {count} / {total} 項目標', monthlyWeekProgress:'進行中 · 目前完成 {count} / {total} 項目標', monthlyWeekUpcoming:'即將開始 · 共 {total} 項目標', weeklyTypesTitle:'本週使用的面膜類別', weeklyNoTypes:'本週尚未記錄面膜類別。' });
+    Object.assign(translations.en,{ collectionHeading:'My mask', maskTypeHint:'Choose from My mask.' });
+    Object.assign(translations['zh-Hant'],{ collectionHeading:'我的面膜', maskTypeHint:'請從「我的面膜」中選擇。' });
+    Object.assign(translations.en,{ collectionHeading:'Mask Category', maskTypeHint:'Choose from Mask Category.', addMaskPlaceholder:'Add a new mask type' });
+    Object.assign(translations['zh-Hant'],{ collectionHeading:'面膜類別', maskTypeHint:'請從「面膜類別」中選擇。', addMaskPlaceholder:'新增面膜類別' });
+    const weeklyKpiTargets = [
+      { maskIds:['type-hydrating-moisture-locking'], label:'weeklyHydrating', frequency:1 },
+      { maskIds:['type-deep-cleansing-purifying','type-chemical-exfoliating-resurfacing'], label:'weeklyDeepOrChemical', frequency:1 },
+      { maskIds:['type-pdrn-dna-cellular-repair'], label:'weeklyPdrn', frequency:1 },
+      { maskIds:['type-soothing-anti-redness'], label:'weeklySoothing', frequency:1 }
+    ];
+    const combinedWeeklyMaskValue = 'weekly-target-deep-or-chemical';
+    const currentWeeklyKpiTargets = () => state.weeklyGoals ?? weeklyKpiTargets;
+    const weeklyGoalLabel = target => target.label ? t(target.label) : target.maskIds.map(id => maskNameForDisplay(findMask(id))).filter(Boolean).join(' / ');
+    const weeklyGoalSelection = target => target.maskIds.length > 1 && target.maskIds.includes('type-deep-cleansing-purifying') && target.maskIds.includes('type-chemical-exfoliating-resurfacing') ? combinedWeeklyMaskValue : target.maskIds[0] || '';
+    const weeklyGoalForSelection = (value,frequency) => value === combinedWeeklyMaskValue ? {maskIds:['type-deep-cleansing-purifying','type-chemical-exfoliating-resurfacing'],label:'weeklyDeepOrChemical',frequency} : {maskIds:value ? [value] : [],label:null,frequency};
+    function populateWeeklyGoalTypeSelect(select,target) {
+      select.replaceChildren(new Option(t('chooseWeeklyMask'),''));
+      for (const mask of state.masks) select.add(new Option(maskNameForDisplay(mask),mask.id));
+      const combinedIds = ['type-deep-cleansing-purifying','type-chemical-exfoliating-resurfacing'];
+      if (combinedIds.every(id => state.masks.some(mask => mask.id === id))) select.add(new Option(t('weeklyDeepOrChemical'),combinedWeeklyMaskValue));
+      select.value = weeklyGoalSelection(target);
+    }
+    const maskNamesZh = {
+      'type-hydrating-moisture-locking':'保濕鎖水',
+      'type-soothing-anti-redness':'舒緩退紅',
+      'type-brightening-anti-pigmentation':'提亮淡斑',
+      'type-deep-cleansing-purifying':'深層清潔與淨化',
+      'type-anti-aging-sculpting':'抗老緊緻塑形',
+      'type-chemical-exfoliating-resurfacing':'化學去角質與煥膚',
+      'type-pdrn-dna-cellular-repair':'PDRN 與 DNA 細胞修復',
+      'type-enzyme-proteolytic':'酵素蛋白分解',
+      'type-fermented-microbiome':'發酵微生態',
+      'type-exosome-growth-factor':'外泌體與生長因子'
+    };
+    const maskDetailsZh = {
+      Hydration:'保濕', Soothing:'舒緩', Brightening:'提亮', Purifying:'淨化', Firming:'緊緻', Exfoliating:'去角質', 'Cellular repair':'細胞修復', 'Enzyme treatment':'酵素護理', 'Fermented care':'發酵護理', 'Skin renewal':'肌膚更新'
+    };
+    const choiceNamesZh = {
+      Hydration:'保濕', Calming:'舒緩', Brightening:'提亮', Firming:'緊緻', Clarifying:'淨化', Other:'其他', Hydrated:'水潤', Calm:'舒緩', Soft:'柔嫩', 'No noticeable change':'沒有明顯變化', 'Redness or irritation':'泛紅或刺激'
+    };
+    let language = 'zh-Hant';
+    try {
+      const savedLanguage = localStorage.getItem('masks-calendar-language');
+      if (savedLanguage in translations) language = savedLanguage;
+    } catch {}
+    const locale = () => language === 'zh-Hant' ? 'zh-TW' : 'en-US';
+    const t = (key,values={}) => (translations[language][key] || translations.en[key] || key).replace(/\{(\w+)\}/g,(_,name) => values[name] ?? '');
+    function renderProfileName() {
+      const displayName = profileName ? `${profileName}'s` : t('yourName');
+      element('profile-name-button').textContent = displayName;
+      element('profile-name-button').title = t('editYourName');
+      element('profile-name-button').setAttribute('aria-label',`${t('editYourName')}: ${displayName}`);
+    }
+    const maskNameForDisplay = mask => mask && language === 'zh-Hant' ? maskNamesZh[mask.id] || mask.name : mask?.name || t('unknownMask');
+    const maskDetailForDisplay = detail => language === 'zh-Hant' ? maskDetailsZh[detail] || detail : detail;
+    const choiceForDisplay = value => language === 'zh-Hant' ? choiceNamesZh[value] || value : value;
+    const calendarMaskNames = {
+      en:{ 'type-hydrating-moisture-locking':'Hydrate', 'type-soothing-anti-redness':'Soothe', 'type-brightening-anti-pigmentation':'Brighten', 'type-deep-cleansing-purifying':'Cleanse', 'type-anti-aging-sculpting':'Firm', 'type-chemical-exfoliating-resurfacing':'Exfoliate', 'type-pdrn-dna-cellular-repair':'PDRN', 'type-enzyme-proteolytic':'Enzyme', 'type-fermented-microbiome':'Ferment', 'type-exosome-growth-factor':'Exosome' },
+      'zh-Hant':{ 'type-hydrating-moisture-locking':'保濕', 'type-soothing-anti-redness':'舒緩', 'type-brightening-anti-pigmentation':'提亮', 'type-deep-cleansing-purifying':'淨化', 'type-anti-aging-sculpting':'緊緻', 'type-chemical-exfoliating-resurfacing':'煥膚', 'type-pdrn-dna-cellular-repair':'PDRN', 'type-enzyme-proteolytic':'酵素', 'type-fermented-microbiome':'發酵', 'type-exosome-growth-factor':'外泌體' }
+    };
+    const maskNameForCalendar = mask => calendarMaskNames[language][mask?.id] || maskNameForDisplay(mask);
+    const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+    const offsetDay = (date, offset) => new Date(date.getFullYear(),date.getMonth(),date.getDate()+offset);
+    const entriesForDate = date => state.entries[dateKey(date)] || [];
+    const allMaskTypes = () => [...state.masks,...(state.archivedMasks || [])];
+    const findMask = id => allMaskTypes().find(mask => mask.id === id);
+    const paletteFor = id => {
+      const masks = allMaskTypes();
+      const index = masks.findIndex(mask => mask.id === id);
+      return masks[index]?.palette || palettes[Math.max(0,index) % palettes.length];
+    };
+    const maskTypeColorFor = id => paletteFor(id).color || paletteFor(id).ink;
+    const maskIconColorFor = id => paletteFor(id).ink || maskTypeColorFor(id);
+    function applyPalette(node, id) {
+      const palette = paletteFor(id);
+      node.style.setProperty('--tag-bg',palette.bg);
+      node.style.setProperty('--tag-ink','var(--ink)');
+      node.style.setProperty('--mask-bg',palette.bg);
+      node.style.setProperty('--mask-ink',maskIconColorFor(id));
+      node.style.setProperty('--mask-color',maskTypeColorFor(id));
+    }
+    function createMaskIcon(maskId,className='mask-inline-icon') {
+      const mask = findMask(maskId);
+      const wrapper = document.createElement('span');
+      wrapper.className = className;
+      wrapper.setAttribute('aria-hidden','true');
+      const glyph = document.createElement('span');
+      glyph.setAttribute('data-icon',mask?.icon || 'circle-help');
+      wrapper.append(glyph);
+      if (mask) applyPalette(wrapper,mask.id);
+      else { wrapper.style.setProperty('--mask-bg','#e5efed'); wrapper.style.setProperty('--mask-ink','var(--ink)'); }
+      return wrapper;
+    }
+    function createMaskIconGroup(maskIds,className,iconClass='mask-inline-icon') {
+      const group = document.createElement('span');
+      group.className = className;
+      group.setAttribute('aria-hidden','true');
+      for (const maskId of maskIds) group.append(createMaskIcon(maskId,iconClass));
+      return group;
+    }
+    function renderDynamicIcons() {
+      if (window.lucide) lucide.createIcons({ nameAttr:'data-icon', attrs:{ class:'icon', 'aria-hidden':'true' } });
+    }
+    function updateSelectedMaskIcon(maskId) {
+      const icon = createMaskIcon(maskId,'mask-type-icon');
+      icon.id = 'selected-mask-icon';
+      icon.classList.add('mask-select-icon');
+      element('selected-mask-icon').replaceWith(icon);
+      renderDynamicIcons();
+    }
+    function applyEntryColors(node,entries) {
+      const colors = entries.map(entry => maskTypeColorFor(entry.maskId));
+      if (!colors.length) return;
+      const segmentSize = 100/colors.length;
+      const stops = colors.map((color,index) => `${color} ${index*segmentSize}% ${(index+1)*segmentSize}%`);
+      node.style.background = `linear-gradient(180deg,${stops.join(',')})`;
+    }
+    function persist() {
+      try { localStorage.setItem(storageKey, JSON.stringify(state)); storageAvailable = true; }
+      catch { storageAvailable = false; }
+      element('storage-note').textContent = storageAvailable ? t('savedLocal') : t('storageUnavailable');
+    }
+    function openPhotoDatabase() {
+      if (!('indexedDB' in window)) return Promise.reject(new Error('Photo storage is unavailable in this browser.'));
+      if (!photoDatabasePromise) photoDatabasePromise = new Promise((resolve,reject) => {
+        const request = indexedDB.open(photoDatabaseName,1);
+        request.onupgradeneeded = () => request.result.createObjectStore('photos');
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      return photoDatabasePromise;
+    }
+    async function storePhoto(key,photo) {
+      const database = await openPhotoDatabase();
+      return new Promise((resolve,reject) => {
+        const transaction = database.transaction('photos','readwrite');
+        transaction.objectStore('photos').put(photo,key);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Photo could not be saved.'));
+      });
+    }
+    async function loadPhoto(key) {
+      const database = await openPhotoDatabase();
+      return new Promise((resolve,reject) => {
+        const request = database.transaction('photos','readonly').objectStore('photos').get(key);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    }
+    async function deletePhoto(key) {
+      const database = await openPhotoDatabase();
+      return new Promise((resolve,reject) => {
+        const transaction = database.transaction('photos','readwrite');
+        transaction.objectStore('photos').delete(key);
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error('Photo could not be removed.'));
+      });
+    }
+    function showPhotoPreview(photo) {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+      photoPreviewUrl = photo ? URL.createObjectURL(photo) : '';
+      element('photo-preview').src = photoPreviewUrl;
+      element('photo-preview-wrap').hidden = !photo;
+    }
+    async function renderPhoto(entry) {
+      const token = ++photoLoadToken;
+      pendingPhoto = null;
+      removePhotoRequested = false;
+      element('photo-camera').value = '';
+      element('photo-upload').value = '';
+      showPhotoPreview(null);
+      if (!entry?.photoKey) return;
+      try {
+        const photo = await loadPhoto(entry.photoKey);
+        if (token === photoLoadToken && photo) showPhotoPreview(photo);
+      } catch {
+        if (token === photoLoadToken) element('dialog-status').textContent = t('photoLoadError');
+      }
+    }
+    function renderCalendar() {
+      element('month-heading').textContent = displayedMonth.toLocaleDateString(locale(),{month:'long',year:'numeric'});
+      element('calendar-days').replaceChildren();
+      const firstWeekday = (displayedMonth.getDay()+6)%7;
+      const daysInMonth = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()+1,0).getDate();
+      const cellCount = Math.ceil((firstWeekday+daysInMonth)/7)*7;
+      for (let index = 0; index < cellCount; index++) {
+        const date = offsetDay(displayedMonth,index-firstWeekday);
+        const key = dateKey(date);
+        const dailyEntries = entriesForDate(date);
+        const editingMask = key === dateKey(selected) && element('entry-dialog').open ? findMask(element('mask-select').value) : null;
+        const visibleEntries = dailyEntries.map((entry,index) => editingMask && index === selectedEntryIndex ? { ...entry, maskId:editingMask.id, maskName:element('mask-name').value } : entry);
+        if (editingMask && selectedEntryIndex === null) visibleEntries.push({ maskId:editingMask.id, maskName:element('mask-name').value });
+        const mask = visibleEntries.length ? findMask(visibleEntries[0].maskId) : null;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'day';
+        button.classList.toggle('outside',date.getMonth() !== displayedMonth.getMonth());
+        button.classList.toggle('selected',key === dateKey(selected));
+        button.classList.toggle('has-entry',visibleEntries.length > 0);
+        button.classList.toggle('is-today',key === dateKey(today));
+        button.disabled = date > today;
+        button.setAttribute('aria-pressed',String(key === dateKey(selected)));
+        const dateLabel = date.toLocaleDateString(locale(),{dateStyle:'full'});
+        const entryLabel = visibleEntries.length > 1 ? `${t('entriesOnDate',{count:visibleEntries.length})}: ${visibleEntries.map(entry => `${maskNameForDisplay(findMask(entry.maskId))}${entry.maskName ? `, ${entry.maskName}` : ''}`).join('; ')}` : mask ? maskNameForDisplay(mask) : t('noMaskRecorded');
+        button.setAttribute('aria-label',`${dateLabel}: ${entryLabel}`);
+        if (key === dateKey(today)) button.setAttribute('aria-current','date');
+        const number = document.createElement('span');
+        number.className = 'day-number';
+        number.textContent = date.getDate();
+        button.append(number);
+        if (visibleEntries.length) {
+          for (const entry of visibleEntries) {
+            const entryMask = findMask(entry.maskId);
+            const tag = document.createElement('span');
+            tag.className = 'mask-tag';
+            tag.append(createMaskIcon(entry.maskId));
+            const label = document.createElement('span');
+            label.className = 'mask-tag-label';
+            label.textContent = `${maskNameForCalendar(entryMask)}${entry.maskName ? ` · ${entry.maskName}` : ''}`;
+            tag.append(label);
+            tag.title = `${maskNameForDisplay(entryMask)}${entry.maskName ? ` · ${entry.maskName}` : ''}`;
+            tag.setAttribute('aria-hidden','true');
+            applyPalette(tag,entry.maskId);
+            button.append(tag);
+          }
+          applyPalette(button,visibleEntries[0].maskId);
+          applyEntryColors(button,visibleEntries);
+          button.title = visibleEntries.map(entry => `${maskNameForDisplay(findMask(entry.maskId))}${entry.maskName ? ` · ${entry.maskName}` : ''}`).join('\n');
+        } else {
+          const tag = document.createElement('span');
+          tag.className = 'day-add';
+          tag.textContent = '+';
+          tag.setAttribute('aria-hidden','true');
+          button.append(tag);
+        }
+        button.addEventListener('click',() => { selected = date; selectedEntryIndex = dailyEntries.length ? 0 : null; displayedMonth = new Date(date.getFullYear(),date.getMonth(),1); element('status').textContent = ''; render(); openEntryDialog(); });
+        element('calendar-days').append(button);
+      }
+      const monthEntries = Object.entries(state.entries).filter(([key,entries]) => key.startsWith(dateKey(displayedMonth).slice(0,7)) && entries.length);
+      const monthRecords = monthEntries.flatMap(([,entries]) => entries);
+      element('month-count').firstChild.textContent = `${monthEntries.length} `;
+      renderMaskChart(monthRecords);
+      element('month-total').textContent = language === 'zh-Hant' ? `本月已記錄 ${monthRecords.length} 次` : `${monthRecords.length} ritual${monthRecords.length === 1 ? '' : 's'} this month`;
+      let streak = 0;
+      let cursor = entriesForDate(today).length ? today : offsetDay(today,-1);
+      while (entriesForDate(cursor).length) { streak++; cursor = offsetDay(cursor,-1); }
+      element('streak-count').firstChild.textContent = `${streak} `;
+      renderWeeklyKpis();
+      renderMonthlySummary();
+      renderDynamicIcons();
+    }
+    function renderMaskChart(monthEntries) {
+      const counts = new Map();
+      for (const entry of monthEntries) counts.set(entry.maskId,(counts.get(entry.maskId) || 0)+1);
+      const usedMasks = allMaskTypes().map(mask => ({ mask, count:counts.get(mask.id) || 0 })).filter(item => item.count > 0);
+      const totalUses = usedMasks.reduce((total,item) => total+item.count,0);
+      const chart = element('mask-chart');
+      element('chart-total').textContent = totalUses;
+      chart.setAttribute('aria-label',t('chartAria'));
+      element('chart-empty').hidden = totalUses > 0;
+      let progress = 0;
+      const segments = usedMasks.map(({mask,count}) => {
+        const start = progress;
+        progress += count/totalUses*100;
+        return `${maskTypeColorFor(mask.id)} ${start}% ${progress}%`;
+      });
+      chart.style.background = segments.length ? `conic-gradient(${segments.join(',')})` : 'conic-gradient(#c9e5e1 0 100%)';
+      const legend = element('chart-legend');
+      legend.replaceChildren();
+      for (const {mask,count} of usedMasks) {
+        const row = document.createElement('div');
+        row.className = 'chart-legend-item';
+        row.title = maskNameForDisplay(mask);
+        row.setAttribute('role','img');
+        row.setAttribute('aria-label',`${maskNameForDisplay(mask)}: ${t('usesCount',{count})}`);
+        const uses = document.createElement('span');
+        uses.className = 'chart-count';
+        uses.textContent = t('usesCount',{count});
+        row.append(createMaskIcon(mask.id,'mask-inline-icon chart-legend-icon'),uses);
+        legend.append(row);
+      }
+    }
+    function renderWeeklyKpis() {
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+6)%7));
+      const weekEnd = offsetDay(weekStart,6);
+      const rangeOptions = {month:'short',day:'numeric'};
+      element('weekly-range').textContent = `${weekStart.toLocaleDateString(locale(),rangeOptions)} – ${weekEnd.toLocaleDateString(locale(),rangeOptions)}`;
+      const weeklyEntries = Array.from({length:7},(_,index) => entriesForDate(offsetDay(weekStart,index))).flat();
+      const rows = element('weekly-kpi-rows');
+      rows.replaceChildren();
+      const editor = element('weekly-kpi-editor');
+      rows.hidden = editingWeeklyGoals;
+      editor.hidden = !editingWeeklyGoals;
+      element('customize-weekly-kpis').hidden = editingWeeklyGoals;
+      if (editingWeeklyGoals) { renderWeeklyKpiEditor(); return; }
+      for (const target of currentWeeklyKpiTargets()) {
+        const count = weeklyEntries.filter(entry => target.maskIds.includes(entry.maskId)).length;
+        const frequency = target.frequency || 1;
+        const row = document.createElement('div');
+        row.className = 'weekly-kpi-row';
+        const name = document.createElement('span');
+        name.className = 'weekly-kpi-name';
+        name.append(createMaskIconGroup(target.maskIds,'weekly-kpi-type-icons'));
+        const targetLabel = document.createElement('span');
+        targetLabel.className = 'weekly-kpi-name-text';
+        targetLabel.textContent = weeklyGoalLabel(target);
+        name.append(targetLabel);
+        name.title = weeklyGoalLabel(target);
+        const track = document.createElement('div');
+        track.className = 'weekly-kpi-track';
+        track.setAttribute('role','progressbar');
+        track.setAttribute('aria-valuemin','0');
+        track.setAttribute('aria-valuemax',String(frequency));
+        track.setAttribute('aria-valuenow',String(Math.min(count,frequency)));
+        track.setAttribute('aria-valuetext',t('weeklyKpiAria',{name:weeklyGoalLabel(target),count,frequency}));
+        const fill = document.createElement('span');
+        fill.className = 'weekly-kpi-fill';
+        fill.style.width = `${Math.min(count/frequency,1)*100}%`;
+        const targetCounts = target.maskIds.map(maskId => ({maskId,count:weeklyEntries.filter(entry => entry.maskId === maskId).length})).filter(item => item.count > 0);
+        const totalTargetUses = targetCounts.reduce((sum,item) => sum+item.count,0);
+        let targetProgress = 0;
+        const targetSegments = targetCounts.map(item => {
+          const start = targetProgress;
+          targetProgress += item.count/totalTargetUses*100;
+          return `${maskTypeColorFor(item.maskId)} ${start}% ${targetProgress}%`;
+        });
+        fill.style.background = targetSegments.length ? `linear-gradient(90deg,${targetSegments.join(',')})` : maskTypeColorFor(target.maskIds[0]);
+        track.append(fill);
+        const value = document.createElement('span');
+        value.className = 'weekly-kpi-count';
+        value.textContent = t('weeklyCount',{count,frequency});
+        row.append(name,track,value);
+        rows.append(row);
+      }
+    }
+    function renderWeeklyKpiEditor() {
+      const rows = element('weekly-kpi-edit-rows');
+      rows.replaceChildren();
+      weeklyGoalDraft.forEach((goal,index) => {
+        const row = document.createElement('div');
+        row.className = 'weekly-kpi-edit-row';
+        const typeSelect = document.createElement('select');
+        typeSelect.setAttribute('aria-label',t('weeklyGoalType'));
+        populateWeeklyGoalTypeSelect(typeSelect,goal);
+        const frequencySelect = document.createElement('select');
+        frequencySelect.setAttribute('aria-label',t('weeklyGoalFrequency'));
+        for (let frequency=1; frequency<=7; frequency++) frequencySelect.add(new Option(String(frequency),String(frequency)));
+        frequencySelect.value = String(goal.frequency || 1);
+        typeSelect.addEventListener('change',() => { weeklyGoalDraft[index] = weeklyGoalForSelection(typeSelect.value,Number(frequencySelect.value)); element('save-weekly-kpis').disabled = weeklyGoalDraft.some(target => !target.maskIds.length); });
+        frequencySelect.addEventListener('change',() => { weeklyGoalDraft[index] = {...weeklyGoalDraft[index],frequency:Number(frequencySelect.value)}; });
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'icon-button';
+        remove.disabled = weeklyGoalDraft.length <= 1;
+        remove.title = t('removeWeeklyKpi');
+        remove.setAttribute('aria-label',t('removeWeeklyKpi'));
+        const removeIcon = document.createElement('span');
+        removeIcon.setAttribute('data-icon','trash-2');
+        remove.append(removeIcon);
+        remove.addEventListener('click',() => { weeklyGoalDraft.splice(index,1); renderWeeklyKpiEditor(); });
+        row.append(typeSelect,frequencySelect,remove);
+        rows.append(row);
+      });
+      element('save-weekly-kpis').disabled = weeklyGoalDraft.some(goal => !goal.maskIds.length);
+      renderDynamicIcons();
+    }
+    function renderMonthlySummary() {
+      const goals = currentWeeklyKpiTargets();
+      const monthStart = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth(),1);
+      const monthEnd = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()+1,0);
+      element('monthly-summary-range').textContent = displayedMonth.toLocaleDateString(locale(),{month:'long',year:'numeric'});
+      const firstWeekStart = new Date(monthStart);
+      firstWeekStart.setDate(firstWeekStart.getDate()-((firstWeekStart.getDay()+6)%7));
+      const weeks = [];
+      for (let weekStart = new Date(firstWeekStart); weekStart <= monthEnd; weekStart.setDate(weekStart.getDate()+7)) {
+        const start = new Date(weekStart);
+        const end = offsetDay(start,6);
+        const records = Array.from({length:7},(_,index) => entriesForDate(offsetDay(start,index))).flat();
+        const completedTargets = goals.filter(target => records.filter(entry => target.maskIds.includes(entry.maskId)).length >= (target.frequency || 1)).length;
+        const isUpcoming = start > today;
+        const isCurrent = start <= today && end >= today;
+        const status = isUpcoming ? 'upcoming' : completedTargets === goals.length ? 'passed' : end < today ? 'failed' : 'inProgress';
+        weeks.push({start,end,records,completedTargets,status,isCurrent});
+      }
+      const completedWeeks = weeks.filter(week => week.status === 'passed' || week.status === 'failed');
+      const passedWeeks = weeks.filter(week => week.status === 'passed').length;
+      const pendingWeeks = weeks.length-completedWeeks.length;
+      let monthlyStatus;
+      let monthlyStatusClass;
+      if (pendingWeeks) {
+        monthlyStatus = completedWeeks.length ? t('monthlyKpiProgress',{passed:passedWeeks,completed:completedWeeks.length,pending:pendingWeeks}) : t('monthlyKpiProgressStart',{pending:pendingWeeks});
+        monthlyStatusClass = 'is-in-progress';
+      } else if (passedWeeks === weeks.length) {
+        monthlyStatus = t('monthlyKpiPassed');
+        monthlyStatusClass = 'is-passed';
+      } else {
+        monthlyStatus = t('monthlyKpiFailed');
+        monthlyStatusClass = 'is-failed';
+      }
+      element('monthly-kpi-result').className = `monthly-kpi-result ${monthlyStatusClass}`;
+      element('monthly-kpi-result').textContent = monthlyStatus;
+
+      const weeksContainer = element('monthly-weeks');
+      weeksContainer.replaceChildren();
+      const rangeOptions = {month:'short',day:'numeric'};
+      for (const week of weeks) {
+        const row = document.createElement('article');
+        row.className = 'monthly-week';
+        const heading = document.createElement('div');
+        heading.className = 'monthly-week-heading';
+        const title = document.createElement('h3');
+        title.className = 'monthly-week-title';
+        title.textContent = `${week.start.toLocaleDateString(locale(),rangeOptions)} – ${week.end.toLocaleDateString(locale(),rangeOptions)}`;
+        const note = document.createElement('span');
+        note.className = `monthly-week-note is-${week.status.replace(/[A-Z]/g,letter=>`-${letter.toLowerCase()}`)}`;
+        const noteKey = week.status === 'passed' ? 'monthlyWeekPass' : week.status === 'failed' ? 'monthlyWeekFail' : week.status === 'upcoming' ? 'monthlyWeekUpcoming' : 'monthlyWeekProgress';
+        note.textContent = t(noteKey,{count:week.completedTargets,total:goals.length});
+        heading.append(title,note);
+        const content = document.createElement('div');
+        content.className = 'monthly-week-content';
+        const chart = document.createElement('div');
+        chart.className = 'mask-chart monthly-week-chart';
+        chart.setAttribute('role','img');
+        chart.setAttribute('aria-label',`${t('weeklyTypesTitle')}: ${title.textContent}`);
+        const center = document.createElement('div');
+        center.className = 'chart-center';
+        const total = document.createElement('span');
+        total.className = 'chart-total';
+        total.textContent = week.records.length;
+        const usesLabel = document.createElement('span');
+        usesLabel.className = 'chart-total-label';
+        usesLabel.textContent = t('uses');
+        center.append(total,usesLabel);
+        chart.append(center);
+        const legend = document.createElement('div');
+        legend.className = 'monthly-week-legend';
+        const counts = new Map();
+        for (const record of week.records) counts.set(record.maskId,(counts.get(record.maskId) || 0)+1);
+        const usedMasks = allMaskTypes().map(mask => ({mask,count:counts.get(mask.id) || 0})).filter(item => item.count > 0);
+        let progress = 0;
+        const segments = usedMasks.map(({mask,count}) => {
+          const start = progress;
+          progress += count/week.records.length*100;
+          return `${maskTypeColorFor(mask.id)} ${start}% ${progress}%`;
+        });
+        chart.style.background = segments.length ? `conic-gradient(${segments.join(',')})` : 'conic-gradient(#c9e5e1 0 100%)';
+        if (usedMasks.length) {
+          for (const {mask,count} of usedMasks) {
+            const item = document.createElement('div');
+            item.className = 'chart-legend-item';
+            const name = document.createElement('span');
+            name.className = 'monthly-week-mask-name';
+            name.textContent = maskNameForDisplay(mask);
+            const value = document.createElement('span');
+            value.className = 'chart-count';
+            value.textContent = t('usesCount',{count});
+            item.title = `${maskNameForDisplay(mask)}: ${t('usesCount',{count})}`;
+            item.setAttribute('role','img');
+            item.setAttribute('aria-label',item.title);
+            item.append(createMaskIcon(mask.id,'mask-inline-icon chart-legend-icon'),name,value);
+            legend.append(item);
+          }
+        } else {
+          const empty = document.createElement('span');
+          empty.className = 'chart-empty';
+          empty.textContent = t('weeklyNoTypes');
+          legend.append(empty);
+        }
+        content.append(chart,legend);
+        row.append(heading,content);
+        weeksContainer.append(row);
+      }
+    }
+    function renderEntry(preserveDraft=false) {
+      const dailyEntries = entriesForDate(selected);
+      const entry = selectedEntryIndex === null ? null : dailyEntries[selectedEntryIndex] || null;
+      const draft = preserveDraft ? { maskId:element('mask-select').value, maskName:element('mask-name').value, skinFocus:element('skin-focus').value, duration:element('entry-duration').value, pendingPhoto, removePhotoRequested } : null;
+      element('entry-label').textContent = dateKey(selected) === dateKey(today) ? t('todayRitual') : t('dailyEntry');
+      element('entry-date').textContent = selected.toLocaleDateString(locale(),{weekday:'long',month:'short',day:'numeric'});
+      element('dialog-title').textContent = selected.toLocaleDateString(locale(),{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+      const summary = element('entry-summary');
+      summary.replaceChildren();
+      if (dailyEntries.length) {
+        for (const record of dailyEntries) {
+          const line = document.createElement('div');
+          line.className = 'entry-summary-record';
+          const details = document.createElement('span');
+          details.textContent = [maskNameForDisplay(findMask(record.maskId)),record.maskName,choiceForDisplay(record.skinFocus),record.duration ? (language === 'zh-Hant' ? `${record.duration} 分鐘` : `${record.duration} min`) : ''].filter(Boolean).join(' · ');
+          line.append(createMaskIcon(record.maskId),details);
+          summary.append(line);
+        }
+      } else summary.textContent = t('noEntry');
+      const entryList = element('daily-entries');
+      entryList.replaceChildren();
+      entryList.hidden = dailyEntries.length === 0;
+      dailyEntries.forEach((record,index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'daily-entry-chip';
+        button.setAttribute('aria-pressed',String(index === selectedEntryIndex));
+        const icon = createMaskIcon(record.maskId);
+        const label = document.createElement('span');
+        label.textContent = `${t('entryNumber',{number:index+1})}: ${maskNameForDisplay(findMask(record.maskId))}${record.maskName ? ` · ${record.maskName}` : ''}`;
+        button.append(icon,label);
+        button.addEventListener('click',() => { selectedEntryIndex = index; renderEntry(); });
+        entryList.append(button);
+      });
+      element('add-entry-label').textContent = t(dailyEntries.length ? 'addAnotherEntry' : 'addEntry');
+      const select = element('mask-select');
+      select.replaceChildren(new Option(t('selectMaskType'),''));
+      for (const mask of state.masks) select.add(new Option(maskNameForDisplay(mask),mask.id));
+      select.value = draft?.maskId ?? entry?.maskId ?? '';
+      updateSelectedMaskIcon(select.value);
+      element('mask-name').value = draft?.maskName ?? entry?.maskName ?? '';
+      element('skin-focus').value = draft?.skinFocus ?? entry?.skinFocus ?? '';
+      element('entry-duration').value = draft?.duration ?? entry?.duration ?? '';
+      element('open-entry-label').textContent = dailyEntries.length ? t('editDetails') : t('recordDetails');
+      element('save-label').textContent = entry ? t('saveChanges') : t('saveEntry');
+      element('remove-entry').hidden = !entry;
+      if (draft) { pendingPhoto = draft.pendingPhoto; removePhotoRequested = draft.removePhotoRequested; }
+      else renderPhoto(entry);
+      renderDynamicIcons();
+    }
+    function openEntryDialog() {
+      element('dialog-status').textContent = '';
+      if (selectedEntryIndex === null && entriesForDate(selected).length) selectedEntryIndex = 0;
+      renderEntry();
+      element('entry-dialog').showModal();
+      element('mask-select').focus();
+    }
+    function saveMaskOrder(focusMaskId=null) {
+      persist(); renderCalendar(); renderEntry(true); renderCollection();
+      element('status').textContent = t('maskOrderUpdated');
+      if (focusMaskId) requestAnimationFrame(() => [...document.querySelectorAll('.mask-drag-handle')].find(button => button.dataset.maskId === focusMaskId)?.focus());
+    }
+    function moveMask(maskId,offset) {
+      const index = state.masks.findIndex(mask => mask.id === maskId);
+      const destination = index+offset;
+      if (index < 0 || destination < 0 || destination >= state.masks.length) return;
+      const [mask] = state.masks.splice(index,1);
+      state.masks.splice(destination,0,mask);
+      saveMaskOrder(maskId);
+    }
+    function moveMaskTo(maskId,targetMaskId,afterTarget) {
+      const sourceIndex = state.masks.findIndex(mask => mask.id === maskId);
+      const targetIndex = state.masks.findIndex(mask => mask.id === targetMaskId);
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return;
+      let destination = targetIndex+(afterTarget ? 1 : 0);
+      if (sourceIndex < destination) destination--;
+      if (destination === sourceIndex) return;
+      const [mask] = state.masks.splice(sourceIndex,1);
+      state.masks.splice(destination,0,mask);
+      saveMaskOrder();
+    }
+    function renderCollection() {
+      element('collection-count').textContent = t('maskCount',{count:state.masks.length});
+      const editToggle = element('toggle-collection-edit');
+      editToggle.setAttribute('aria-pressed',String(collectionEditMode));
+      editToggle.setAttribute('aria-label',t(collectionEditMode ? 'finishCollectionEdit' : 'editCollection'));
+      editToggle.title = t(collectionEditMode ? 'finishCollectionEdit' : 'editCollection');
+      editToggle.querySelector('[data-icon]').setAttribute('data-icon',collectionEditMode ? 'check' : 'pencil');
+      element('collection-list').classList.toggle('edit-mode',collectionEditMode);
+      element('collection-list').replaceChildren();
+      for (const mask of state.masks) {
+        const item = document.createElement('div');
+        item.className = 'mask-item';
+        item.dataset.maskId = mask.id;
+        applyPalette(item,mask.id);
+        item.append(createMaskIcon(mask.id,'mask-type-icon'));
+        if (editingMaskId === mask.id) {
+          const form = document.createElement('form');
+          form.className = 'mask-edit-form';
+          const nameInput = document.createElement('input');
+          nameInput.className = 'mask-edit-name';
+          nameInput.required = true;
+          nameInput.maxLength = 60;
+          nameInput.value = mask.name;
+          nameInput.setAttribute('aria-label',t('categoryNameLabel'));
+          nameInput.placeholder = t('categoryNameLabel');
+          const detailInput = document.createElement('input');
+          detailInput.maxLength = 60;
+          detailInput.value = mask.detail || '';
+          detailInput.setAttribute('aria-label',t('categoryDetailLabel'));
+          detailInput.placeholder = t('categoryDetailLabel');
+          const actions = document.createElement('div');
+          actions.className = 'mask-edit-actions';
+          const save = document.createElement('button');
+          save.type = 'submit';
+          save.className = 'icon-button';
+          save.title = t('saveCategory');
+          save.setAttribute('aria-label',t('saveCategory'));
+          const saveIcon = document.createElement('span');
+          saveIcon.setAttribute('data-icon','check');
+          save.append(saveIcon);
+          const cancel = document.createElement('button');
+          cancel.type = 'button';
+          cancel.className = 'icon-button';
+          cancel.title = t('cancelCategoryEdit');
+          cancel.setAttribute('aria-label',t('cancelCategoryEdit'));
+          const cancelIcon = document.createElement('span');
+          cancelIcon.setAttribute('data-icon','x');
+          cancel.append(cancelIcon);
+          cancel.addEventListener('click',() => { editingMaskId = null; renderCollection(); });
+          actions.append(save,cancel);
+          form.append(nameInput,detailInput,actions);
+          form.addEventListener('submit',event => {
+            event.preventDefault();
+            const name = nameInput.value.trim();
+            if (!name) { nameInput.setCustomValidity(t('enterMaskName')); nameInput.reportValidity(); return; }
+            if (state.masks.some(other => other.id !== mask.id && other.name.toLowerCase() === name.toLowerCase())) { nameInput.setCustomValidity(t('duplicateCategoryName')); nameInput.reportValidity(); return; }
+            mask.name = name;
+            mask.detail = detailInput.value.trim();
+            editingMaskId = null;
+            persist(); renderCalendar(); renderEntry(true); renderCollection();
+            element('status').textContent = t('categoryUpdated');
+          });
+          form.addEventListener('input',() => nameInput.setCustomValidity(''));
+          item.append(form);
+        } else {
+          const copy = document.createElement('div');
+          copy.className = 'mask-item-copy';
+          const name = document.createElement('strong');
+          name.textContent = maskNameForDisplay(mask);
+          const detail = document.createElement('small');
+          detail.textContent = maskDetailForDisplay(mask.detail || (language === 'zh-Hant' ? '個人收藏' : 'Personal collection'));
+          copy.append(name,detail);
+          item.append(copy);
+          if (collectionEditMode) {
+          const actions = document.createElement('div');
+          actions.className = 'mask-actions';
+          const dragHandle = document.createElement('button');
+          dragHandle.type = 'button';
+          dragHandle.className = 'icon-button mask-drag-handle';
+          dragHandle.title = `${t('dragMask')}: ${maskNameForDisplay(mask)}`;
+          dragHandle.setAttribute('aria-label',dragHandle.title);
+          dragHandle.setAttribute('aria-keyshortcuts','ArrowUp ArrowDown');
+          const gripIcon = document.createElement('span');
+          gripIcon.setAttribute('data-icon','grip-vertical');
+          dragHandle.append(gripIcon);
+          let activePointerId = null;
+          dragHandle.addEventListener('pointerdown',event => {
+            if (event.button !== 0) return;
+            activePointerId = event.pointerId;
+            dragHandle.setPointerCapture(event.pointerId);
+            item.classList.add('is-dragging');
+            event.preventDefault();
+          });
+          dragHandle.addEventListener('pointermove',event => {
+            if (activePointerId !== event.pointerId) return;
+            for (const row of document.querySelectorAll('.mask-item')) row.classList.remove('drop-before','drop-after');
+            const target = document.elementFromPoint(event.clientX,event.clientY)?.closest('.mask-item');
+            if (target && target !== item) {
+              const bounds = target.getBoundingClientRect();
+              target.classList.add(event.clientY < bounds.top+bounds.height/2 ? 'drop-before' : 'drop-after');
+            }
+          });
+          dragHandle.addEventListener('pointerup',event => {
+            if (activePointerId !== event.pointerId) return;
+            const target = document.querySelector('.mask-item.drop-before,.mask-item.drop-after');
+            const afterTarget = target?.classList.contains('drop-after') || false;
+            activePointerId = null;
+            item.classList.remove('is-dragging');
+            for (const row of document.querySelectorAll('.mask-item')) row.classList.remove('drop-before','drop-after');
+            if (target && target !== item) moveMaskTo(mask.id,target.dataset.maskId,afterTarget);
+          });
+          dragHandle.addEventListener('pointercancel',() => { activePointerId = null; item.classList.remove('is-dragging'); for (const row of document.querySelectorAll('.mask-item')) row.classList.remove('drop-before','drop-after'); });
+          dragHandle.addEventListener('keydown',event => {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') { event.preventDefault(); moveMask(mask.id,event.key === 'ArrowUp' ? -1 : 1); }
+          });
+          const edit = document.createElement('button');
+          edit.type = 'button';
+          edit.className = 'icon-button';
+          edit.title = `${t('editCategory')}: ${maskNameForDisplay(mask)}`;
+          edit.setAttribute('aria-label',edit.title);
+          const editIcon = document.createElement('span');
+          editIcon.setAttribute('data-icon','pencil');
+          edit.append(editIcon);
+          edit.addEventListener('click',() => { editingMaskId = mask.id; renderCollection(); document.querySelector('.mask-edit-name')?.focus(); });
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'icon-button';
+          remove.title = `${t('deleteCategory')}: ${maskNameForDisplay(mask)}`;
+          remove.setAttribute('aria-label',remove.title);
+          const removeIcon = document.createElement('span');
+          removeIcon.setAttribute('data-icon','trash-2');
+          remove.append(removeIcon);
+          remove.addEventListener('click',() => {
+            if (!window.confirm(t('deleteCategoryConfirm',{name:maskNameForDisplay(mask)}))) return;
+            state.masks = state.masks.filter(item => item.id !== mask.id);
+            state.archivedMasks ||= [];
+            if (!state.archivedMasks.some(item => item.id === mask.id)) state.archivedMasks.push(mask);
+            if (editingMaskId === mask.id) editingMaskId = null;
+            persist(); renderCalendar(); renderEntry(true); renderCollection();
+            element('status').textContent = t('categoryDeleted');
+          });
+          actions.append(dragHandle,edit,remove);
+          item.append(actions);
+          }
+        }
+        element('collection-list').append(item);
+      }
+      renderDynamicIcons();
+    }
+    function render() { renderCalendar(); renderEntry(); renderCollection(); }
+    function applyLanguage(preserveDraft=true) {
+      document.documentElement.lang = language;
+      document.title = t('appTitle');
+      element('language-select').value = language;
+      for (const node of document.querySelectorAll('[data-i18n]')) node.textContent = t(node.dataset.i18n);
+      for (const [attribute,dataName] of [['placeholder','i18nPlaceholder'],['aria-label','i18nAria'],['title','i18nTitle'],['alt','i18nAlt']]) {
+        for (const node of document.querySelectorAll(`[data-${dataName.replace(/[A-Z]/g,letter=>`-${letter.toLowerCase()}`)}]`)) node.setAttribute(attribute,t(node.dataset[dataName]));
+      }
+      element('storage-note').textContent = storageAvailable ? t('savedLocal') : t('storageUnavailable');
+      renderProfileName();
+      renderCalendar(); renderEntry(preserveDraft); renderCollection();
+    }
+    element('language-select').addEventListener('change',event => {
+      language = event.target.value === 'en' ? 'en' : 'zh-Hant';
+      try { localStorage.setItem('masks-calendar-language',language); } catch {}
+      applyLanguage(true);
+    });
+    element('profile-name-button').addEventListener('click',() => {
+      element('profile-name-input').value = profileName || t('yourName');
+      element('profile-name-dialog').showModal();
+      element('profile-name-input').focus();
+      element('profile-name-input').select();
+    });
+    element('profile-name-form').addEventListener('submit',event => {
+      event.preventDefault();
+      const name = element('profile-name-input').value.trim();
+      if (!name) { element('profile-name-input').reportValidity(); return; }
+      profileName = name;
+      try { localStorage.setItem('masks-calendar-user-name',profileName); } catch {}
+      renderProfileName();
+      element('profile-name-dialog').close();
+    });
+    element('cancel-profile-name').addEventListener('click',() => element('profile-name-dialog').close());
+    element('close-profile-name').addEventListener('click',() => element('profile-name-dialog').close());
+    element('customize-weekly-kpis').addEventListener('click',() => {
+      editingWeeklyGoals = true;
+      weeklyGoalDraft = currentWeeklyKpiTargets().map(goal => ({...goal,maskIds:[...goal.maskIds],frequency:goal.frequency || 1}));
+      element('weekly-kpi-editor-status').textContent = '';
+      element('weekly-kpi-status').textContent = '';
+      element('weekly-kpi-status').hidden = true;
+      renderWeeklyKpis();
+    });
+    element('add-weekly-kpi').addEventListener('click',() => {
+      const firstMask = state.masks[0];
+      weeklyGoalDraft.push({maskIds:firstMask ? [firstMask.id] : [],label:null,frequency:1});
+      renderWeeklyKpiEditor();
+    });
+    element('cancel-weekly-kpis').addEventListener('click',() => {
+      editingWeeklyGoals = false;
+      weeklyGoalDraft = [];
+      element('weekly-kpi-editor-status').textContent = '';
+      renderWeeklyKpis();
+    });
+    element('save-weekly-kpis').addEventListener('click',() => {
+      if (!weeklyGoalDraft.length || weeklyGoalDraft.some(goal => !goal.maskIds.length || !Number.isInteger(goal.frequency) || goal.frequency < 1 || goal.frequency > 7)) {
+        element('weekly-kpi-editor-status').textContent = t('weeklyGoalError');
+        return;
+      }
+      state.weeklyGoals = weeklyGoalDraft.map(goal => ({maskIds:[...goal.maskIds],label:goal.label || null,frequency:goal.frequency}));
+      persist();
+      editingWeeklyGoals = false;
+      weeklyGoalDraft = [];
+      renderCalendar();
+      element('weekly-kpi-status').textContent = storageAvailable ? t('weeklyGoalSaved') : t('sessionSaved');
+      element('weekly-kpi-status').hidden = false;
+    });
+    element('mask-select').addEventListener('change',() => { element('dialog-status').textContent = ''; updateSelectedMaskIcon(element('mask-select').value); renderCalendar(); });
+    element('entry-form').addEventListener('submit',async event => {
+      event.preventDefault();
+      if (selected > today || !element('mask-select').value) return;
+      const key = dateKey(selected);
+      const dailyEntries = entriesForDate(selected);
+      const previousEntry = selectedEntryIndex === null ? null : dailyEntries[selectedEntryIndex] || null;
+      const entryId = previousEntry?.id || globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+      const photoKey = pendingPhoto ? previousEntry?.photoKey || `${key}:${entryId}` : removePhotoRequested ? '' : previousEntry?.photoKey || '';
+      if (pendingPhoto) {
+        element('save-entry').disabled = true;
+        try { await storePhoto(photoKey,pendingPhoto); }
+        catch { element('save-entry').disabled = false; element('dialog-status').textContent = t('photoSaveError'); return; }
+      } else if (removePhotoRequested && previousEntry?.photoKey) {
+        try { await deletePhoto(previousEntry.photoKey); }
+        catch { element('dialog-status').textContent = t('photoRemoveError'); return; }
+      }
+      const record = { ...previousEntry, id:entryId, maskId:element('mask-select').value, maskName:element('mask-name').value.trim(), skinFocus:element('skin-focus').value, duration:element('entry-duration').value ? Number(element('entry-duration').value) : '', photoKey };
+      delete record.skinResponse;
+      if (selectedEntryIndex === null) { dailyEntries.push(record); selectedEntryIndex = dailyEntries.length-1; }
+      else dailyEntries[selectedEntryIndex] = record;
+      state.entries[key] = dailyEntries;
+      persist(); render();
+      const message = storageAvailable ? t('entrySaved') : t('sessionSaved');
+      element('status').textContent = message;
+      element('entry-dialog').close();
+    });
+    element('remove-entry').addEventListener('click',async () => {
+      if (selectedEntryIndex === null) return;
+      const key = dateKey(selected);
+      const dailyEntries = entriesForDate(selected);
+      const entry = dailyEntries[selectedEntryIndex];
+      if (entry?.photoKey) { try { await deletePhoto(entry.photoKey); } catch { element('dialog-status').textContent = t('photoRemoveError'); return; } }
+      dailyEntries.splice(selectedEntryIndex,1);
+      if (dailyEntries.length) { state.entries[key] = dailyEntries; selectedEntryIndex = Math.min(selectedEntryIndex,dailyEntries.length-1); }
+      else { delete state.entries[key]; selectedEntryIndex = null; }
+      persist(); render(); element('dialog-status').textContent = t('entryRemoved');
+    });
+    element('add-entry').addEventListener('click',() => { selectedEntryIndex = null; element('dialog-status').textContent = ''; renderEntry(); element('mask-select').focus(); });
+    element('open-entry').addEventListener('click',openEntryDialog);
+    element('close-entry').addEventListener('click',() => element('entry-dialog').close());
+    element('cancel-entry').addEventListener('click',() => element('entry-dialog').close());
+    element('entry-dialog').addEventListener('click',event => { if (event.target === element('entry-dialog')) element('entry-dialog').close(); });
+    element('entry-dialog').addEventListener('close',renderCalendar);
+    for (const inputId of ['photo-camera','photo-upload']) {
+      element(inputId).addEventListener('change',event => {
+        const photo = event.target.files?.[0];
+        if (!photo) return;
+        if (!photo.type.startsWith('image/')) { event.target.value = ''; element('dialog-status').textContent = t('invalidPhoto'); return; }
+        pendingPhoto = photo;
+        removePhotoRequested = false;
+        showPhotoPreview(photo);
+        element('dialog-status').textContent = '';
+      });
+    }
+    element('remove-photo').addEventListener('click',() => { pendingPhoto = null; removePhotoRequested = true; element('photo-camera').value = ''; element('photo-upload').value = ''; showPhotoPreview(null); });
+    element('add-mask-form').addEventListener('submit',event => {
+      event.preventDefault();
+      const input = element('new-mask');
+      const name = input.value.trim();
+      if (!name) { input.setCustomValidity(t('enterMaskName')); input.reportValidity(); return; }
+      if (state.masks.some(mask => mask.name.toLowerCase() === name.toLowerCase())) { input.setCustomValidity(t('duplicateMask')); input.reportValidity(); return; }
+      const currentMask = element('mask-select').value;
+      const id = globalThis.crypto?.randomUUID?.() || `mask-${Date.now()}`;
+      state.masks.push({ id, name, detail:language === 'zh-Hant' ? '自訂類別' : 'Custom category', icon:randomChoice(randomMaskIcons), palette:{...randomChoice(randomMaskPalettes)} });
+      persist(); renderCollection(); renderEntry(true);
+      element('mask-select').value = currentMask || id;
+      updateSelectedMaskIcon(element('mask-select').value);
+      renderCalendar();
+      input.value = '';
+    });
+    element('new-mask').addEventListener('input',event => event.target.setCustomValidity(''));
+    element('toggle-collection-edit').addEventListener('click',() => { collectionEditMode = !collectionEditMode; if (!collectionEditMode) editingMaskId = null; renderCollection(); });
+    element('previous-month').addEventListener('click',() => { displayedMonth = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()-1,1); renderCalendar(); });
+    element('next-month').addEventListener('click',() => { displayedMonth = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()+1,1); renderCalendar(); });
+    element('today-button').addEventListener('click',() => { selected = new Date(today); selectedEntryIndex = entriesForDate(today).length ? 0 : null; displayedMonth = new Date(today.getFullYear(),today.getMonth(),1); element('status').textContent = ''; render(); });
+    applyLanguage(false);
+  </script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script>if (window.lucide) lucide.createIcons({ nameAttr:'data-icon', attrs:{ class:'icon', 'aria-hidden':'true' } });</script>
+</body>
+</html>
