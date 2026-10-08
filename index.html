@@ -393,6 +393,7 @@
     let profileName = '';
     try { profileName = localStorage.getItem('masks-calendar-user-name') || ''; } catch {}
     let editingMaskId = null;
+    let editingMaskDraft = null;
     let collectionEditMode = false;
     let editingWeeklyGoals = false;
     let weeklyGoalDraft = [];
@@ -493,12 +494,60 @@
       'type-fermented-microbiome':'發酵微生態',
       'type-exosome-growth-factor':'外泌體與生長因子'
     };
-    const maskDetailsZh = {
-      Hydration:'保濕', Soothing:'舒緩', Brightening:'提亮', Purifying:'淨化', Firming:'緊緻', Exfoliating:'去角質', 'Cellular repair':'細胞修復', 'Enzyme treatment':'酵素護理', 'Fermented care':'發酵護理', 'Skin renewal':'肌膚更新'
-    };
     const choiceNamesZh = {
       Hydration:'保濕', Calming:'舒緩', Brightening:'提亮', Firming:'緊緻', Clarifying:'淨化', Other:'其他', Hydrated:'水潤', Calm:'舒緩', Soft:'柔嫩', 'No noticeable change':'沒有明顯變化', 'Redness or irritation':'泛紅或刺激'
     };
+    const maskCategoryTerms = [
+      ['sheet mask','片狀面膜'], ['deep cleansing','深層清潔'], ['moisture-locking','鎖水'], ['oil control','控油'],
+      ['anti-redness','退紅'], ['anti-aging','抗老'], ['anti-acne','抗痘'], ['vitamin c','維他命 C'],
+      ['growth factor','生長因子'], ['cellular repair','細胞修復'], ['brightening','提亮'], ['hydrating','補水'],
+      ['hydration','保濕'], ['moisturizing','保濕'], ['moisture','水分'], ['soothing','舒緩'], ['calming','舒緩'],
+      ['redness','泛紅'], ['cleansing','清潔'], ['purifying','淨化'], ['firming','緊緻'], ['sculpting','塑形'],
+      ['exfoliating','去角質'], ['resurfacing','煥膚'], ['pigmentation','色素沉澱'], ['enzyme','酵素'],
+      ['fermented','發酵'], ['microbiome','微生態'], ['exosome','外泌體'], ['repair','修復'], ['renewal','更新'],
+      ['nourishing','滋養'], ['sensitive','敏感肌'], ['charcoal','竹炭'], ['aloe','蘆薈'], ['tea tree','茶樹'],
+      ['collagen','膠原蛋白'], ['retinol','A 醇'], ['pdrn','PDRN'], ['dna','DNA'], ['mask','面膜'],
+      ['保濕鎖水','moisture-locking'], ['片狀面膜','sheet mask'], ['深層清潔','deep cleansing'],
+      ['控油','oil control'], ['退紅','anti-redness'], ['抗老','anti-aging'], ['抗痘','anti-acne'],
+      ['維他命 C','vitamin C'], ['維生素 C','vitamin C'], ['生長因子','growth factor'], ['細胞修復','cellular repair'],
+      ['提亮','brightening'], ['補水','hydrating'], ['保濕','hydration'], ['鎖水','moisture-locking'],
+      ['舒緩','soothing'], ['泛紅','redness'], ['清潔','cleansing'], ['淨化','purifying'], ['緊緻','firming'],
+      ['塑形','sculpting'], ['去角質','exfoliating'], ['煥膚','resurfacing'], ['色素沉澱','pigmentation'],
+      ['酵素','enzyme'], ['發酵','fermented'], ['微生態','microbiome'], ['外泌體','exosome'], ['修復','repair'],
+      ['更新','renewal'], ['滋養','nourishing'], ['敏感肌','sensitive skin'], ['竹炭','charcoal'], ['蘆薈','aloe'],
+      ['茶樹','tea tree'], ['膠原蛋白','collagen'], ['A 醇','retinol'], ['面膜','mask']
+    ];
+    const englishMaskCategoryTerms = maskCategoryTerms
+      .filter(([term]) => /^[\x00-\x7F]+$/.test(term))
+      .sort(([left],[right]) => right.length-left.length);
+    const chineseMaskCategoryTerms = maskCategoryTerms
+      .filter(([term]) => /[\u3400-\u9fff]/.test(term))
+      .sort(([left],[right]) => right.length-left.length);
+    function translateMaskCategoryName(name,sourceLanguage) {
+      if (sourceLanguage === 'en') {
+        let translated = name;
+        for (const [english,chinese] of englishMaskCategoryTerms) {
+          const escaped = english.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+          translated = translated.replace(new RegExp(`(^|[^A-Za-z0-9])(${escaped})(?=$|[^A-Za-z0-9])`,'gi'),(_,prefix) => `${prefix}${chinese}`);
+        }
+        return translated;
+      }
+      let translated = '';
+      for (let index=0; index<name.length;) {
+        const match = chineseMaskCategoryTerms.find(([chinese]) => name.startsWith(chinese,index));
+        if (match) {
+          if (/[A-Za-z0-9]$/.test(translated) && /^[A-Za-z0-9]/.test(match[1])) translated += ' ';
+          translated += match[1];
+          index += match[0].length;
+        } else translated += name[index++];
+      }
+      return translated;
+    }
+    function maskCategoryNamesFor(name,sourceLanguage) {
+      return sourceLanguage === 'en'
+        ? { en:name,'zh-Hant':translateMaskCategoryName(name,'en') }
+        : { en:translateMaskCategoryName(name,'zh-Hant'),'zh-Hant':name };
+    }
     let language = 'zh-Hant';
     try {
       const savedLanguage = localStorage.getItem('masks-calendar-language');
@@ -512,8 +561,14 @@
       element('profile-name-button').title = t('editYourName');
       element('profile-name-button').setAttribute('aria-label',`${t('editYourName')}: ${displayName}`);
     }
-    const maskNameForDisplay = mask => mask && language === 'zh-Hant' ? maskNamesZh[mask.id] || mask.name : mask?.name || t('unknownMask');
-    const maskDetailForDisplay = detail => language === 'zh-Hant' ? maskDetailsZh[detail] || detail : detail;
+    const maskNameForDisplay = mask => {
+      if (!mask) return t('unknownMask');
+      const translatedName = mask.nameTranslations?.[language];
+      if (typeof translatedName === 'string' && translatedName) return translatedName;
+      if (language === 'zh-Hant' && maskNamesZh[mask.id]) return maskNamesZh[mask.id];
+      const sourceLanguage = /[\u3400-\u9fff]/.test(mask.name) ? 'zh-Hant' : 'en';
+      return sourceLanguage === language ? mask.name : translateMaskCategoryName(mask.name,sourceLanguage);
+    };
     const choiceForDisplay = value => language === 'zh-Hant' ? choiceNamesZh[value] || value : value;
     const calendarMaskNames = {
       en:{ 'type-hydrating-moisture-locking':'Hydrate', 'type-soothing-anti-redness':'Soothe', 'type-brightening-anti-pigmentation':'Brighten', 'type-deep-cleansing-purifying':'Cleanse', 'type-anti-aging-sculpting':'Firm', 'type-chemical-exfoliating-resurfacing':'Exfoliate', 'type-pdrn-dna-cellular-repair':'PDRN', 'type-enzyme-proteolytic':'Enzyme', 'type-fermented-microbiome':'Ferment', 'type-exosome-growth-factor':'Exosome' },
@@ -1038,12 +1093,12 @@
           nameInput.className = 'mask-edit-name';
           nameInput.required = true;
           nameInput.maxLength = 60;
-          nameInput.value = mask.name;
+          nameInput.value = editingMaskDraft?.maskId === mask.id ? editingMaskDraft.name : maskNameForDisplay(mask);
           nameInput.setAttribute('aria-label',t('categoryNameLabel'));
           nameInput.placeholder = t('categoryNameLabel');
           const detailInput = document.createElement('input');
           detailInput.maxLength = 60;
-          detailInput.value = mask.detail || '';
+          detailInput.value = editingMaskDraft?.maskId === mask.id ? editingMaskDraft.detail : mask.detail || '';
           detailInput.setAttribute('aria-label',t('categoryDetailLabel'));
           detailInput.placeholder = t('categoryDetailLabel');
           const actions = document.createElement('div');
@@ -1064,7 +1119,7 @@
           const cancelIcon = document.createElement('span');
           cancelIcon.setAttribute('data-icon','x');
           cancel.append(cancelIcon);
-          cancel.addEventListener('click',() => { editingMaskId = null; renderCollection(); });
+          cancel.addEventListener('click',() => { editingMaskId = null; editingMaskDraft = null; renderCollection(); });
           actions.append(save,cancel);
           form.append(nameInput,detailInput,actions);
           form.addEventListener('submit',event => {
@@ -1073,21 +1128,24 @@
             if (!name) { nameInput.setCustomValidity(t('enterMaskName')); nameInput.reportValidity(); return; }
             if (state.masks.some(other => other.id !== mask.id && other.name.toLowerCase() === name.toLowerCase())) { nameInput.setCustomValidity(t('duplicateCategoryName')); nameInput.reportValidity(); return; }
             mask.name = name;
+            mask.nameTranslations = maskCategoryNamesFor(name,editingMaskDraft?.language || language);
             mask.detail = detailInput.value.trim();
             editingMaskId = null;
+            editingMaskDraft = null;
             persist(); renderCalendar(); renderEntry(true); renderCollection();
             element('status').textContent = t('categoryUpdated');
           });
-          form.addEventListener('input',() => nameInput.setCustomValidity(''));
+          form.addEventListener('input',() => {
+            nameInput.setCustomValidity('');
+            editingMaskDraft = { maskId:mask.id, name:nameInput.value, detail:detailInput.value, language };
+          });
           item.append(form);
         } else {
           const copy = document.createElement('div');
           copy.className = 'mask-item-copy';
           const name = document.createElement('strong');
           name.textContent = maskNameForDisplay(mask);
-          const detail = document.createElement('small');
-          detail.textContent = maskDetailForDisplay(mask.detail || (language === 'zh-Hant' ? '個人收藏' : 'Personal collection'));
-          copy.append(name,detail);
+          copy.append(name);
           item.append(copy);
           if (collectionEditMode) {
           const actions = document.createElement('div');
@@ -1139,7 +1197,12 @@
           const editIcon = document.createElement('span');
           editIcon.setAttribute('data-icon','pencil');
           edit.append(editIcon);
-          edit.addEventListener('click',() => { editingMaskId = mask.id; renderCollection(); document.querySelector('.mask-edit-name')?.focus(); });
+          edit.addEventListener('click',() => {
+            editingMaskId = mask.id;
+            editingMaskDraft = { maskId:mask.id, name:maskNameForDisplay(mask), detail:mask.detail || '', language };
+            renderCollection();
+            document.querySelector('.mask-edit-name')?.focus();
+          });
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'icon-button';
@@ -1153,7 +1216,7 @@
             state.masks = state.masks.filter(item => item.id !== mask.id);
             state.archivedMasks ||= [];
             if (!state.archivedMasks.some(item => item.id === mask.id)) state.archivedMasks.push(mask);
-            if (editingMaskId === mask.id) editingMaskId = null;
+            if (editingMaskId === mask.id) { editingMaskId = null; editingMaskDraft = null; }
             persist(); renderCalendar(); renderEntry(true); renderCollection();
             element('status').textContent = t('categoryDeleted');
           });
@@ -1179,7 +1242,15 @@
       renderCalendar(); renderEntry(preserveDraft); renderCollection();
     }
     element('language-select').addEventListener('change',event => {
-      language = event.target.value === 'en' ? 'en' : 'zh-Hant';
+      const nextLanguage = event.target.value === 'en' ? 'en' : 'zh-Hant';
+      if (editingMaskDraft && nextLanguage !== editingMaskDraft.language) {
+        editingMaskDraft = {
+          ...editingMaskDraft,
+          name:translateMaskCategoryName(editingMaskDraft.name,editingMaskDraft.language),
+          language:nextLanguage
+        };
+      }
+      language = nextLanguage;
       try { localStorage.setItem('masks-calendar-language',language); } catch {}
       applyLanguage(true);
     });
@@ -1296,7 +1367,7 @@
       if (state.masks.some(mask => mask.name.toLowerCase() === name.toLowerCase())) { input.setCustomValidity(t('duplicateMask')); input.reportValidity(); return; }
       const currentMask = element('mask-select').value;
       const id = globalThis.crypto?.randomUUID?.() || `mask-${Date.now()}`;
-      state.masks.push({ id, name, detail:language === 'zh-Hant' ? '自訂類別' : 'Custom category', icon:randomChoice(randomMaskIcons), palette:{...randomChoice(randomMaskPalettes)} });
+      state.masks.push({ id, name, nameTranslations:maskCategoryNamesFor(name,language), detail:language === 'zh-Hant' ? '自訂類別' : 'Custom category', icon:randomChoice(randomMaskIcons), palette:{...randomChoice(randomMaskPalettes)} });
       persist(); renderCollection(); renderEntry(true);
       element('mask-select').value = currentMask || id;
       updateSelectedMaskIcon(element('mask-select').value);
@@ -1304,7 +1375,7 @@
       input.value = '';
     });
     element('new-mask').addEventListener('input',event => event.target.setCustomValidity(''));
-    element('toggle-collection-edit').addEventListener('click',() => { collectionEditMode = !collectionEditMode; if (!collectionEditMode) editingMaskId = null; renderCollection(); });
+    element('toggle-collection-edit').addEventListener('click',() => { collectionEditMode = !collectionEditMode; if (!collectionEditMode) { editingMaskId = null; editingMaskDraft = null; } renderCollection(); });
     element('previous-month').addEventListener('click',() => { displayedMonth = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()-1,1); renderCalendar(); });
     element('next-month').addEventListener('click',() => { displayedMonth = new Date(displayedMonth.getFullYear(),displayedMonth.getMonth()+1,1); renderCalendar(); });
     element('today-button').addEventListener('click',() => { selected = new Date(today); selectedEntryIndex = entriesForDate(today).length ? 0 : null; displayedMonth = new Date(today.getFullYear(),today.getMonth(),1); element('status').textContent = ''; render(); });
